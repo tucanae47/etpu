@@ -6,11 +6,11 @@ module pe
         input clk,
         input rst,
         input en,
-        input [9:0] up,
+        input [15:0] up,
         input [7:0] left,
         input [7:0] w,
         output reg [7:0] right,
-        output reg [9:0] down
+        output reg [15:0] down
     );
 
     
@@ -18,8 +18,10 @@ module pe
     begin
         if(rst) 
             begin
-                right <= 8'b0;
-                down <= 10'b0;
+                right <= 8'h00;
+                down <= 8'h00;
+                // right <= 8'b0;
+                // down <= 16'b0;
             end
         else if (en)
             begin
