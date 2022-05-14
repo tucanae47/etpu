@@ -65,7 +65,7 @@ async def test_sys(dut):
         # np.random.randint(255, size=(3, 3))
         await RST(dut)
 
-        ''' generate random input matrices bit len 5 for the moment , we need to transpose the weights before start '''
+        ''' generate random input matrices bit len 7 for the moment , we need to transpose the weights before start '''
         # W = np.random.randint(8, size=(3,3),dtype=np.dtype(int) )
         # I = np.random.randint(8, size=(3,3),dtype=np.dtype(int) ).tolist()
         W = np.random.choice(list(range(1, 128)), (3, 3))

@@ -18,10 +18,8 @@ module pe
     begin
         if(rst) 
             begin
-                right <= 8'h00;
-                down <= 8'h00;
-                // right <= 8'b0;
-                // down <= 16'b0;
+                right <= 8'b0;
+                down <= 16'b0;
             end
         else if (en)
             begin

@@ -8,18 +8,15 @@ module sysa #(
   (
     input clk,
     input rst,
-    // input [(N*N)-1:0] en,
     input en,
     input [(8*N*N)-1:0] w,
     input [(8*N)-1:0] in,
-    // output reg [16*N-1:0] out
     output reg [15:0] out1,
     output reg [15:0] out2,
     output reg [15:0] out3
   );
 
-  // reg [15:0] zero = 15'b0;
-    reg [15:0] zero = 4'h0000;
+  reg [15:0] zero = 15'b0;
   wire [7:0] r_11, r_12, r_13 ;
   wire [15:0] d_11, d_12, d_13 ;
   // 1
