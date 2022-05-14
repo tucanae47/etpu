@@ -91,7 +91,6 @@ async def test_sys(dut):
     # I = np.random.randint(4, size=(3,3),dtype=np.dtype(int) ).tolist()
     '''We need to transpose the matrix as current processing arragement'''
     Wt = np.array(W).transpose().tolist();
-    print('------------------------------------- ',Wt)
 
 
     expected = np.matmul(W,I)
@@ -108,7 +107,6 @@ async def test_sys(dut):
     dut.data = BinaryValue(w_data)
     await RisingEdge(dut.clk)
     w_data = Wt[2][2]
-    print('-------------->',w_data)
     dut.data = BinaryValue(w_data)
     await RisingEdge(dut.clk)
 
@@ -139,7 +137,7 @@ async def test_sys(dut):
     masks = [mask_0,mask_1]
     index = 0
     values = []
-    for i in range(20):
+    for i in range(12):
         ops = dut.ops.value.integer
         if ops > 6:
             # value = dut.out.value.integer
@@ -150,16 +148,19 @@ async def test_sys(dut):
                 for i,mask in enumerate(masks):
                     ob = int((value & mask) >> (i*16))
                     values.append(ob)
-        else:
-            print(dut.out.value, dut.c1.value.integer, dut.c2.value.integer, dut.c3.value.integer)
         
         await ClockCycles(dut.clk, 1)
 
-    print(values)
+    for k in range(9):
+        i = int(k / 3)
+        j = k % 3
+        observed[i][j] = values[k]
+    
+    print(observed)
     print(expected)
     print()
     # print(W)
     # print(I)
-    # for i in range(3):
-    #     for j in range(3):
-    #         assert(observed[i][j] == expected[i][j])
+    for i in range(3):
+        for j in range(3):
+            assert(observed[i][j] == expected[i][j])

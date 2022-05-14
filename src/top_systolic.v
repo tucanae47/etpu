@@ -13,11 +13,7 @@ module top_systolic(
     input [23:0] input_i
   );
 
-  // reg [16*3-1:0] result_o1;
-  // reg [16*3-1:0] result_o2;
   reg [16*9-1:0] result_o;
-  // reg [16*3-1:0] result_o3;
-
   reg [96:0] weights;
   reg loading;
   wire [48:0] wgt;
@@ -39,7 +35,6 @@ module top_systolic(
   begin
     if(reset)
     begin
-      // en <= 9'b1;
       en <=0;
       i<=0;
       ops<=0;
@@ -48,16 +43,12 @@ module top_systolic(
       c1 <= 0;
       c2 <= 3;
       c3 <= 6;
-      // result_o1 = 48'b0;
       result_o = 144'b0;
-      // result_o2 = 48'b0;
-      // result_o3 = 48'b0;
       o_1 <= 16'b0;
       o_2 <= 16'b0;
       o_3 <= 16'b0;
       o_data <= 4'b0;
       out <= 32'b0;
-      // o_data<={31{Z1}};
     end
     else
     begin
@@ -80,32 +71,36 @@ module top_systolic(
           if( ops > 6)
           begin
             sys_state <= STATE_STOP;
-            // result_o <= {result_o1, result_o2, result_o3};
           end
-          else begin
-          if (ops > 0 && c1 < 3) begin
-            result_o [(c1*16)+:16] <= o_1;
-            c1 <= c1 +1;
+          else
+          begin
+            if (ops > 0 && c1 < 3)
+            begin
+              result_o [(c1*16)+:16] <= o_1;
+              c1 <= c1 +1;
+            end
+            if (ops > 1 && c2 < 6)
+            begin
+              result_o [(c2*16)+:16] <= o_2;
+              c2 <= c2 +1;
+            end
+            if (ops > 2 && c3 < 9)
+            begin
+              result_o [(c3*16)+:16] <= o_3;
+              c3 <= c3 +1;
+            end
+            ops <= ops + 1;
           end
-          if (ops > 1 && c2 < 6) begin
-            result_o [(c2*16)+:16] <= o_2;
-            c2 <= c2 +1;
-          end
-          if (ops > 2 && c3 < 9) begin
-            result_o [(c3*16)+:16] <= o_3;
-            c3 <= c3 +1;
-          end
-          ops <= ops + 1;
-        end
         end
 
         STATE_STOP:
         begin
-          if (o_data == 4) begin
+          if (o_data == 4)
+          begin
             out <= result_o[(o_data*32)+:16];
           end
-          else if (o_data > 4) begin
-          // if (o_data > 4) begin
+          else if (o_data > 4)
+          begin
             out <= 32'b0;
             o_data <= 4'b0;
             sys_state <= STATE_LOAD;
@@ -113,21 +108,10 @@ module top_systolic(
             c2 <= 0;
             c3 <= 0;
           end
-          else begin 
-              out <= result_o[(o_data*32)+:32];
-              o_data <= o_data + 1;
-            // if (o_data < 3) begin
-            //   out <= result_o[(o_data*32)+:32];
-            //   o_data <= o_data + 1;
-            // end
-            // else if (o_data < 6) begin
-            //   out <= result_o[(o_data*32)+:32];
-            //   o_data <= o_data + 1;
-            // end
-            // else begin
-            //   out <= result_o[(o_data*32)+:32];
-            //   o_data <= o_data + 1;
-            // end
+          else
+          begin
+            out <= result_o[(o_data*32)+:32];
+            o_data <= o_data + 1;
           end
         end
 
@@ -141,9 +125,9 @@ module top_systolic(
 
   always @(*)
   begin
-      o_1 = o1;
-      o_2 = o2;
-      o_3 = o3;
+    o_1 = o1;
+    o_2 = o2;
+    o_3 = o3;
   end
 
   sysa sa(
