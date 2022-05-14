@@ -64,6 +64,15 @@ module top_systolic(
           weights [(i*32)+:32] <= data;
           i <= i + 1;
           en <= 1;
+          result_o = 144'b0;
+          c1 <= 0;
+          c2 <= 3;
+          c3 <= 6;
+          o_1 <= 16'b0;
+          o_2 <= 16'b0;
+          o_3 <= 16'b0;
+          o_data <= 4'b0;
+          out <= 32'b0;
         end
 
         STATE_RUN:
@@ -107,6 +116,7 @@ module top_systolic(
             c1 <= 0;
             c2 <= 0;
             c3 <= 0;
+            weights = 96'b0;
           end
           else
           begin
