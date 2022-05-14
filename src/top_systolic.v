@@ -13,10 +13,10 @@ module top_systolic(
     input [23:0] input_i
   );
 
-  reg [16*3-1:0] result_o1;
-  reg [16*3-1:0] result_o2;
+  // reg [16*3-1:0] result_o1;
+  // reg [16*3-1:0] result_o2;
   reg [16*9-1:0] result_o;
-  reg [16*3-1:0] result_o3;
+  // reg [16*3-1:0] result_o3;
 
   reg [96:0] weights;
   reg loading;
@@ -46,12 +46,12 @@ module top_systolic(
       sys_state <= STATE_LOAD;
       weights = 96'b0;
       c1 <= 0;
-      c2 <= 0;
-      c3 <= 0;
-      result_o1 = 48'b0;
+      c2 <= 3;
+      c3 <= 6;
+      // result_o1 = 48'b0;
       result_o = 144'b0;
-      result_o2 = 48'b0;
-      result_o3 = 48'b0;
+      // result_o2 = 48'b0;
+      // result_o3 = 48'b0;
       o_1 <= 16'b0;
       o_2 <= 16'b0;
       o_3 <= 16'b0;
@@ -80,19 +80,19 @@ module top_systolic(
           if( ops > 6)
           begin
             sys_state <= STATE_STOP;
-            result_o <= {result_o1, result_o2, result_o3};
+            // result_o <= {result_o1, result_o2, result_o3};
           end
           else begin
           if (ops > 0 && c1 < 3) begin
-            result_o1 [(c1*16)+:16] <= o_1;
+            result_o [(c1*16)+:16] <= o_1;
             c1 <= c1 +1;
           end
-          if (ops > 1 && c2 < 3) begin
-            result_o2 [(c2*16)+:16] <= o_2;
+          if (ops > 1 && c2 < 6) begin
+            result_o [(c2*16)+:16] <= o_2;
             c2 <= c2 +1;
           end
-          if (ops > 2 && c3 < 3) begin
-            result_o3 [(c3*16)+:16] <= o_3;
+          if (ops > 2 && c3 < 9) begin
+            result_o [(c3*16)+:16] <= o_3;
             c3 <= c3 +1;
           end
           ops <= ops + 1;
@@ -101,11 +101,11 @@ module top_systolic(
 
         STATE_STOP:
         begin
-          // if (o_data == 3) begin
-          //   out <= result_o[(o_data*32)+:16];
-          // end
-          // else if (o_data > 4) begin
-          if (o_data > 4) begin
+          if (o_data == 4) begin
+            out <= result_o[(o_data*32)+:16];
+          end
+          else if (o_data > 4) begin
+          // if (o_data > 4) begin
             out <= 32'b0;
             o_data <= 4'b0;
             sys_state <= STATE_LOAD;

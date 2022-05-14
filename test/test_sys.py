@@ -158,8 +158,8 @@ async def test_sys(dut):
     print(values)
     print(expected)
     print()
-    print(W)
-    print(I)
+    # print(W)
+    # print(I)
     # for i in range(3):
     #     for j in range(3):
     #         assert(observed[i][j] == expected[i][j])
