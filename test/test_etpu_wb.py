@@ -63,85 +63,92 @@ async def test_etpu_wb(dut):
     # ram_bus     = WishboneRAM    (dut, dut.rambus_wb_clk_o, ram_bus_signals_dict)
 
     # load a triangle wave into the ram, first 15 words (4 bytes per word, so 60 data points), starting at 10, incremementing by 1 each time
+    for i in range(20):
+        await reset(dut)
 
-    await reset(dut)
+        # W = [[1, 4, 5],
+        #      [5, 8, 9],
+        #      [6, 7, 11]]
 
-    W = [[1, 4, 5],
-         [5, 8, 9],
-         [6, 7, 11]]
+        # Wt = [[1, 5, 6],
+        #      [4, 8, 7],
+        #      [5, 9, 11]]
 
-    Wt = [[1, 5, 6],
-         [4, 8, 7],
-         [5, 9, 11]]
+        # I = [[1, 5, 12],
+        #      [5, 9, 0],
+        #      [6, 11, 19]]
 
-    I = [[1, 5, 12],
-         [5, 9, 0],
-         [6, 11, 19]]
-    
-    # expected = np.matmul(np.array(Wt), np.array(I))
-    expected = np.matmul(W, I)
-
-    # default base addr
-    base_addr = 0x3000_0000
-    w_data = Wt[1][0] << 24 | Wt[0][2] << 16 | Wt[0][1] << 8 | Wt[0][0]
-    await test_wb_set(caravel_bus, base_addr, w_data)
-    # data = await test_wb_get(caravel_bus, base_addr)
-    w_data = Wt[2][1] << 24 | Wt[2][0] << 16 | Wt[1][2] << 8 | Wt[1][1]
-    await test_wb_set(caravel_bus, base_addr, w_data)
-    # data = await test_wb_get(caravel_bus, base_addr)
-    w_data = Wt[2][2]
-    await test_wb_set(caravel_bus, base_addr, w_data)
-
-    # TODO:? need to send another value to the bus, dunno why yet 
-    await test_wb_set(caravel_bus, base_addr, 0)
-
-    # # fetch it
-    # print(data, "-----------")
-    w_data = int(I[0][0])
-    await test_wb_set(caravel_bus, base_addr, w_data)
-    w_data = int(I[1][0]) << 8 | int(I[0][1])
-    await test_wb_set(caravel_bus, base_addr, w_data)
-    w_data = int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
-    await test_wb_set(caravel_bus, base_addr, w_data)
-    w_data = int(I[2][1]) << 16 | int(I[1][2]) << 8
-    await test_wb_set(caravel_bus, base_addr, w_data)
-    w_data = int(I[2][2]) << 16
-    await test_wb_set(caravel_bus, base_addr, w_data)
-
-    await ClockCycles(dut.clock, 25)
-
-
-    observed = np.zeros((3, 3))
-    mask_0 = (1 << 16)-1
-    mask_1 = mask_0 << 16
-    masks = [mask_0, mask_1]
-    values = []
-    for i in range(5):
-        ops = dut.ops.value.integer
-        if ops > 6:
-            value = await test_wb_get(caravel_bus, base_addr)
-            if value is not None :
-                for i, mask in enumerate(masks):
-                    ob = int((value & mask) >> (i*16))
-                    values.append(ob)
-                
-    # the real test :P
-    if len(values) < 9:
-            print("failed----------------------------------->")
-            print(W)
-            print(I)
-            assert(0)
-    else:
-        for k in range(9):
-            i = int(k / 3)
-            j = k % 3
-            observed[i][j] = values[k]
+        W = np.random.choice(list(range(1, 128)), (3, 3))
+        # W = W.astype(int)
+        I = np.random.choice(list(range(1, 128)), (3, 3))
+        # I = I.astype(int)
+        '''We need to transpose the matrix as current processing arragement'''
+        Wt = np.array(W).transpose().tolist()
         
-        print(observed)
-        print(expected)
-        for i in range(3):
-            for j in range(3):
-                assert(observed[i][j] == expected[i][j])
+        # expected = np.matmul(np.array(Wt), np.array(I))
+        expected = np.matmul(W, I)
+
+        # default base addr
+        base_addr = 0x3000_0000
+        w_data = Wt[1][0] << 24 | Wt[0][2] << 16 | Wt[0][1] << 8 | Wt[0][0]
+        await test_wb_set(caravel_bus, base_addr, w_data)
+        # data = await test_wb_get(caravel_bus, base_addr)
+        w_data = Wt[2][1] << 24 | Wt[2][0] << 16 | Wt[1][2] << 8 | Wt[1][1]
+        await test_wb_set(caravel_bus, base_addr, w_data)
+        # data = await test_wb_get(caravel_bus, base_addr)
+        w_data = Wt[2][2]
+        await test_wb_set(caravel_bus, base_addr, w_data)
+
+        # TODO:? need to send another value to the bus, dunno why yet 
+        await test_wb_set(caravel_bus, base_addr, 0)
+
+        # # fetch it
+        # print(data, "-----------")
+        w_data = int(I[0][0])
+        await test_wb_set(caravel_bus, base_addr, w_data)
+        w_data = int(I[1][0]) << 8 | int(I[0][1])
+        await test_wb_set(caravel_bus, base_addr, w_data)
+        w_data = int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
+        await test_wb_set(caravel_bus, base_addr, w_data)
+        w_data = int(I[2][1]) << 16 | int(I[1][2]) << 8
+        await test_wb_set(caravel_bus, base_addr, w_data)
+        w_data = int(I[2][2]) << 16
+        await test_wb_set(caravel_bus, base_addr, w_data)
+
+        await ClockCycles(dut.clock, 25)
+
+
+        observed = np.zeros((3, 3))
+        mask_0 = (1 << 16)-1
+        mask_1 = mask_0 << 16
+        masks = [mask_0, mask_1]
+        values = []
+        for i in range(5):
+            ops = dut.ops.value.integer
+            if ops > 6:
+                value = await test_wb_get(caravel_bus, base_addr)
+                if value is not None :
+                    for i, mask in enumerate(masks):
+                        ob = int((value & mask) >> (i*16))
+                        values.append(ob)
+                    
+        # the real test :P
+        if len(values) < 9:
+                print("failed----------------------------------->")
+                print(W)
+                print(I)
+                assert(0)
+        else:
+            for k in range(9):
+                i = int(k / 3)
+                j = k % 3
+                observed[i][j] = values[k]
+            
+            print(observed)
+            print(expected)
+            for i in range(3):
+                for j in range(3):
+                    assert(observed[i][j] == expected[i][j])
 
 
 

@@ -59,7 +59,7 @@ async def print_pe_out(out):
 async def test_sys(dut):
     """Test reading data from RAM"""
 
-    for i in range(200):
+    for i in range(20):
         clock = Clock(dut.clk, 10, units="us")
         cocotb.fork(clock.start())
         # np.random.randint(255, size=(3, 3))
