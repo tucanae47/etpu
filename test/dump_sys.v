@@ -1,7 +1,7 @@
 module dump();
     initial begin
-        $dumpfile ("top_systolic.vcd");
-        $dumpvars (0, top_systolic);
+        $dumpfile ("edu_tpu.vcd");
+        $dumpvars (0, edu_tpu);
         #1;
     end
 endmodule

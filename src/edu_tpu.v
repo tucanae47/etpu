@@ -34,8 +34,6 @@ module clk_div_n #(
       pos_count<= pos_count +1;
       clk_out<=0;
     end
-
-
 endmodule
 
 module edu_tpu #(
@@ -53,6 +51,7 @@ module edu_tpu #(
     output reg          wb_ack_o,       // ack
     output reg  [31:0]  wb_dat_o       // data out
   );
+
   wire clk2,clk;
   clk_div_n div(
               .rst(rst),
@@ -78,17 +77,13 @@ module edu_tpu #(
   reg [7:0] c1,c2,c3;
   wire [15:0] o1,o2,o3;
   reg [15:0] o_1,o_2,o_3;
-  reg [1:0] Z1 = 1'b0;
   reg [23:0] input_i;
-  reg [2:0] debug,debug2;
 
   reg en, clocked;
   // CaravelBus reads
 
   always @(posedge clk)
   begin
-    debug <= wb_stb_i && wb_cyc_i && wb_we_i && wb_ack_o && wb_adr_i == BASE_ADDRESS;
-    debug2 <= wb_stb_i && wb_cyc_i && wb_we_i && wb_ack_o;
     if(rst)
     begin
       en <=0;
@@ -127,7 +122,6 @@ module edu_tpu #(
             weights [(i*32)+:32] <= wb_dat_i;
             i <= i + 1;
           end
-          // out <= 32'b0;
         end
         STATE_LOAD2:
         begin
