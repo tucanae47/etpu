@@ -62,7 +62,6 @@ async def test_etpu_wb(dut):
     
     # ram_bus     = WishboneRAM    (dut, dut.rambus_wb_clk_o, ram_bus_signals_dict)
 
-    # load a triangle wave into the ram, first 15 words (4 bytes per word, so 60 data points), starting at 10, incremementing by 1 each time
     for i in range(20):
         await reset(dut)
 

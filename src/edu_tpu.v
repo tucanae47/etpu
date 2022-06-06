@@ -84,6 +84,9 @@ module edu_tpu #(
 
   always @(posedge clk)
   begin
+    // return ack
+    wb_ack_o <= (wb_stb_i && wb_adr_i == BASE_ADDRESS);
+
     if(rst)
     begin
       en <=0;
@@ -106,10 +109,7 @@ module edu_tpu #(
     end
     else
     begin
-      // return ack
-
-      wb_ack_o <= (wb_stb_i && wb_adr_i == BASE_ADDRESS);
-      // FSM for loading data 
+      // FSM for loading data
       case(sys_state)
         STATE_LOAD:
         begin
@@ -151,7 +151,6 @@ module edu_tpu #(
         default:
           sys_state <= STATE_DORMANT;
       endcase
-
     end
   end
 
@@ -159,8 +158,6 @@ module edu_tpu #(
   // we need another clock to stream data into the systolic array using wishbone bus
   always @(posedge clk2)
   begin
-
-    wb_ack_o <= (wb_stb_i && wb_adr_i == BASE_ADDRESS);
     // FSM for systolic array
     case(sys_state2)
       STATE_RUN:
@@ -193,7 +190,6 @@ module edu_tpu #(
           ops<= ops +1;
         end
       end
-
       STATE_STOP:
       begin
         if (o_data > 4)
@@ -219,11 +215,9 @@ module edu_tpu #(
           end
         end
       end
-
       default:
         sys_state2 <= STATE_DORMANT;
     endcase
-
   end
 
 
@@ -246,8 +240,7 @@ module edu_tpu #(
        );
 
 `ifdef COCOTB_SIM
-
-  `ifndef SCANNED
+`ifndef SCANNED
 `define SCANNED
           initial
           begin
@@ -256,6 +249,7 @@ module edu_tpu #(
             #1;
           end
 `endif
-    `endif
-        endmodule
+`endif
+
+endmodule
 
