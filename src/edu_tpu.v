@@ -199,7 +199,8 @@ module edu_tpu #(
         if (o_data > 4)
         begin
           o_data <= 4'b0;
-          sys_state2 <= STATE_LOAD;
+          sys_state <= STATE_LOAD;
+          sys_state2 <= STATE_DORMANT;
           c1 <= 0;
           c2 <= 0;
           c3 <= 0;

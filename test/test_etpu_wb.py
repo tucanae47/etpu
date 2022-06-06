@@ -80,7 +80,6 @@ async def test_etpu_wb(dut):
     
     # expected = np.matmul(np.array(Wt), np.array(I))
     expected = np.matmul(W, I)
-    print(expected)
 
     # default base addr
     base_addr = 0x3000_0000
@@ -92,8 +91,9 @@ async def test_etpu_wb(dut):
     # data = await test_wb_get(caravel_bus, base_addr)
     w_data = Wt[2][2]
     await test_wb_set(caravel_bus, base_addr, w_data)
+
+    # TODO:? need to send another value to the bus, dunno why yet 
     await test_wb_set(caravel_bus, base_addr, 0)
-    # await ClockCycles(dut.clock, 25)
 
     # # fetch it
     # print(data, "-----------")
@@ -109,16 +109,41 @@ async def test_etpu_wb(dut):
     await test_wb_set(caravel_bus, base_addr, w_data)
 
     await ClockCycles(dut.clock, 25)
-    data = await test_wb_get(caravel_bus, base_addr)
-    print(data)
-    data = await test_wb_get(caravel_bus, base_addr)
-    print(data)
-    data = await test_wb_get(caravel_bus, base_addr)
-    print(data)
-    data = await test_wb_get(caravel_bus, base_addr)
-    print(data)
-    data = await test_wb_get(caravel_bus, base_addr)
-    # await ClockCycles(dut.clock, 5)
+
+
+    observed = np.zeros((3, 3))
+    mask_0 = (1 << 16)-1
+    mask_1 = mask_0 << 16
+    masks = [mask_0, mask_1]
+    values = []
+    for i in range(5):
+        ops = dut.ops.value.integer
+        if ops > 6:
+            value = await test_wb_get(caravel_bus, base_addr)
+            if value is not None :
+                for i, mask in enumerate(masks):
+                    ob = int((value & mask) >> (i*16))
+                    values.append(ob)
+                
+    # the real test :P
+    if len(values) < 9:
+            print("failed----------------------------------->")
+            print(W)
+            print(I)
+            assert(0)
+    else:
+        for k in range(9):
+            i = int(k / 3)
+            j = k % 3
+            observed[i][j] = values[k]
+        
+        print(observed)
+        print(expected)
+        for i in range(3):
+            for j in range(3):
+                assert(observed[i][j] == expected[i][j])
+
+
 
 
 
