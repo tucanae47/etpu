@@ -60,7 +60,7 @@ module edu_tpu #(
   wire clk2,clk,rst;
   clk_div_n div(
               .rst(rst),
-              .clk(clk),
+              .clk(caravel_wb_clk_i),
               .div_num(4),
               .clk_out(clk2)
             );
