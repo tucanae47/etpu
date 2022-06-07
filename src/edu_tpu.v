@@ -40,27 +40,33 @@ module edu_tpu #(
     parameter   [31:0]  BASE_ADDRESS    = 32'h3000_0000        // base address
   )(
 
-    input wire          clock,       // clock, runs at system clock
-    input wire          rst,       // main system rst
-    input wire          wb_stb_i,       // write strobe
-    input wire          wb_cyc_i,       // cycle
-    input wire          wb_we_i,        // write enable
-    input wire  [3:0]   wb_sel_i,       // write word select
-    input wire  [31:0]  wb_dat_i,       // data in
-    input wire  [31:0]  wb_adr_i,       // address
-    output reg          wb_ack_o,       // ack
-    output reg  [31:0]  wb_dat_o       // data out
+`ifdef USE_POWER_PINS
+    inout vccd1,	// User area 1 1.8V supply
+    inout vssd1,	// User area 1 digital ground
+`endif
+
+    input wire          caravel_wb_clk_i,       // clock, runs at system clock
+    input wire          caravel_wb_rst_i,       // main system reset
+    input wire          caravel_wb_stb_i,       // write strobe
+    input wire          caravel_wb_cyc_i,       // cycle
+    input wire          caravel_wb_we_i,        // write enable
+    input wire  [3:0]   caravel_wb_sel_i,       // write word select
+    input wire  [31:0]  caravel_wb_dat_i,       // data in
+    input wire  [31:0]  caravel_wb_adr_i,       // address
+    output reg          caravel_wb_ack_o,       // ack
+    output reg  [31:0]  caravel_wb_dat_o       // data out
   );
 
-  wire clk2,clk;
+  wire clk2,clk,rst;
   clk_div_n div(
               .rst(rst),
-              .clk(clock),
+              .clk(clk),
               .div_num(4),
               .clk_out(clk2)
             );
 
-  assign clk = clock;
+  assign clk = caravel_wb_clk_i;
+  assign rst = caravel_wb_rst_i;
   reg [16*9-1:0] result_o;
   reg [96:0] weights;
   reg [120:0] stream;
@@ -85,7 +91,7 @@ module edu_tpu #(
   always @(posedge clk)
   begin
     // return ack
-    wb_ack_o <= (wb_stb_i && wb_adr_i == BASE_ADDRESS);
+    caravel_wb_ack_o <= (caravel_wb_stb_i && caravel_wb_adr_i == BASE_ADDRESS);
 
     if(rst)
     begin
@@ -104,8 +110,8 @@ module edu_tpu #(
       o_2 <= 16'b0;
       o_3 <= 16'b0;
       o_data <= 4'b0;
-      wb_ack_o <= 0;
-      wb_dat_o <= 0;
+      caravel_wb_ack_o <= 0;
+      caravel_wb_dat_o <= 0;
     end
     else
     begin
@@ -117,15 +123,15 @@ module edu_tpu #(
           begin
             sys_state <= STATE_LOAD2;
           end
-          else if(wb_stb_i && wb_cyc_i && wb_we_i && wb_ack_o && wb_adr_i == BASE_ADDRESS)
+          else if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
-            weights [(i*32)+:32] <= wb_dat_i;
+            weights [(i*32)+:32] <= caravel_wb_dat_i;
             i <= i + 1;
           end
         end
         STATE_LOAD2:
         begin
-          if(wb_stb_i && wb_cyc_i && wb_we_i && wb_ack_o && wb_adr_i == BASE_ADDRESS)
+          if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
             if (i2 > 2)
             begin
@@ -144,7 +150,7 @@ module edu_tpu #(
             begin
               i2 <=  i2 +1;
             end
-            input_i <= wb_dat_i[23:0];
+            input_i <= caravel_wb_dat_i[23:0];
             en<=1;
           end
         end
@@ -163,8 +169,8 @@ module edu_tpu #(
       STATE_RUN:
       begin
         // if (clk2)
-        if(wb_stb_i && wb_cyc_i && wb_we_i && wb_ack_o && wb_adr_i == BASE_ADDRESS)
-          input_i <= wb_dat_i[23:0];
+        if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
+          input_i <= caravel_wb_dat_i[23:0];
 
         if( ops > 6)
         begin
@@ -205,12 +211,12 @@ module edu_tpu #(
         else
         begin
           // write to the bus the result
-          if(wb_stb_i && wb_cyc_i && !wb_we_i && wb_adr_i == BASE_ADDRESS)
+          if(caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS)
           begin
             if (o_data == 4)
-              wb_dat_o <= result_o[(o_data*32)+:16];
+              caravel_wb_dat_o <= result_o[(o_data*32)+:16];
             else
-              wb_dat_o <= result_o[(o_data*32)+:32];
+              caravel_wb_dat_o <= result_o[(o_data*32)+:32];
             o_data <= o_data + 1;
           end
         end
