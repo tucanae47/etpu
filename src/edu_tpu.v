@@ -19,7 +19,6 @@ module clk_div_n #(
 
 
   reg [WIDTH-1:0] pos_count;
-  wire [WIDTH-1:0] r_nxt;
 
   always @(posedge clk)
     if (rst)
@@ -102,14 +101,6 @@ module edu_tpu #(
       sys_state <= STATE_LOAD;
       sys_state2 <= STATE_DORMANT;
       weights = 96'b0;
-      c1 <= 0;
-      c2 <= 3;
-      c3 <= 6;
-      result_o = 144'b0;
-      o_1 <= 16'b0;
-      o_2 <= 16'b0;
-      o_3 <= 16'b0;
-      o_data <= 4'b0;
       // caravel_wb_ack_o <= 0;
       // caravel_wb_dat_o <= 0;
     end
@@ -137,14 +128,7 @@ module edu_tpu #(
             begin
               sys_state <= STATE_DORMANT;
               sys_state2 <= STATE_RUN;
-              result_o = 144'b0;
-              c1 <= 0;
-              c2 <= 3;
-              c3 <= 6;
-              o_1 <= 16'b0;
-              o_2 <= 16'b0;
-              o_3 <= 16'b0;
-              o_data <= 4'b0;
+              
             end
             else
             begin
@@ -171,7 +155,16 @@ module edu_tpu #(
         // if (clk2)
         if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           input_i <= caravel_wb_dat_i[23:0];
-
+          if (ops == 0) begin
+            result_o <= 144'b0;
+            c1 <= 0;
+            c2 <= 3;
+            c3 <= 6;
+            o_1 <= 16'b0;
+            o_2 <= 16'b0;
+            o_3 <= 16'b0;
+            o_data <= 4'b0;
+          end
         if( ops > 6)
         begin
           sys_state2 <= STATE_STOP;
