@@ -100,7 +100,7 @@ module edu_tpu #(
       ops<=0;
       sys_state <= STATE_LOAD;
       sys_state2 <= STATE_DORMANT;
-      weights = 96'b0;
+      weights <= 96'b0;
       // caravel_wb_ack_o <= 0;
       // caravel_wb_dat_o <= 0;
     end
