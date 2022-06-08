@@ -29,18 +29,18 @@ async def test_wb_get(caravel_bus, addr):
     return rvalues[0]
 
 async def reset(dut):
-    dut.rst = 1
-    dut.wb_dat_i = 0
-    await ClockCycles(dut.clock, 1)
+    dut.caravel_wb_rst_i = 1
+    dut.caravel_wb_dat_i = 0
+    await ClockCycles(dut.caravel_wb_clk_i, 1)
     dut.rst = 0
-    await ClockCycles(dut.clock, 1)
+    await ClockCycles(dut.caravel_wb_clk_i, 1)
 
 @cocotb.test()
 async def test_etpu_wb(dut):
     """
     Run all the tests
     """
-    clock = Clock(dut.clock, 10, units="us")
+    clock = Clock(dut.caravel_wb_clk_i, 10, units="us")
     
 
     #dut.rambus_wb_ack_i = 1;
@@ -49,20 +49,20 @@ async def test_etpu_wb(dut):
     cocotb.fork(clock.start())
 
     caravel_bus_signals_dict = {
-        "cyc"   :   "wb_cyc_i",
-        "stb"   :   "wb_stb_i",
-        "we"    :   "wb_we_i",
-        "adr"   :   "wb_adr_i",
-        "datwr" :   "wb_dat_i",
-        "datrd" :   "wb_dat_o",
-        "ack"   :   "wb_ack_o"
+        "cyc"   :   "caravel_wb_cyc_i",
+        "stb"   :   "caravel_wb_stb_i",
+        "we"    :   "caravel_wb_we_i",
+        "adr"   :   "caravel_wb_adr_i",
+        "datwr" :   "caravel_wb_dat_i",
+        "datrd" :   "caravel_wb_dat_o",
+        "ack"   :   "caravel_wb_ack_o"
     }
 
-    caravel_bus = WishboneMaster(dut, "", dut.clock, width=32, timeout=10, signals_dict=caravel_bus_signals_dict)
+    caravel_bus = WishboneMaster(dut, "", dut.caravel_wb_clk_i, width=32, timeout=10, signals_dict=caravel_bus_signals_dict)
     
     # ram_bus     = WishboneRAM    (dut, dut.rambus_wb_clk_o, ram_bus_signals_dict)
 
-    for i in range(20):
+    for i in range(1):
         await reset(dut)
 
         # W = [[1, 4, 5],
@@ -114,7 +114,7 @@ async def test_etpu_wb(dut):
         w_data = int(I[2][2]) << 16
         await test_wb_set(caravel_bus, base_addr, w_data)
 
-        await ClockCycles(dut.clock, 25)
+        await ClockCycles(dut.caravel_wb_clk_i, 25)
 
 
         observed = np.zeros((3, 3))
