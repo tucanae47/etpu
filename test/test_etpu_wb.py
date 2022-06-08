@@ -32,7 +32,7 @@ async def reset(dut):
     dut.caravel_wb_rst_i = 1
     dut.caravel_wb_dat_i = 0
     await ClockCycles(dut.caravel_wb_clk_i, 1)
-    dut.rst = 0
+    dut.caravel_wb_rst_i = 0
     await ClockCycles(dut.caravel_wb_clk_i, 1)
 
 @cocotb.test()
@@ -62,7 +62,7 @@ async def test_etpu_wb(dut):
     
     # ram_bus     = WishboneRAM    (dut, dut.rambus_wb_clk_o, ram_bus_signals_dict)
 
-    for i in range(1):
+    for i in range(20):
         await reset(dut)
 
         # W = [[1, 4, 5],
