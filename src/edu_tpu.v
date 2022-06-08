@@ -110,8 +110,6 @@ module edu_tpu #(
       o_2 <= 16'b0;
       o_3 <= 16'b0;
       o_data <= 4'b0;
-      caravel_wb_ack_o <= 0;
-      caravel_wb_dat_o <= 0;
     end
     else
     begin
