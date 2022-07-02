@@ -137,7 +137,7 @@ module edu_tpu #(
       i<=0;
       i2<=0;
       ops<=0;
-      wrst_n <= 1;
+      wrst_n <= 0;
       sys_state <= STATE_LOAD;
       weights <= 96'b0;
       winc<= 0;
@@ -191,8 +191,8 @@ module edu_tpu #(
   begin
   if(rst2)
     begin
-      rrst_n <= 1;
-      rinc <=1;
+      rrst_n <= 0;
+      rinc <=0;
       sys_state2 <= STATE_DORMANT;
     end
     else begin 
@@ -200,12 +200,12 @@ module edu_tpu #(
     case(sys_state2)
       STATE_DORMANT:
       begin
-        // if(!arempty)
-        // begin
+        if(!arempty)
+        begin
           en<=1;
-          // rinc<=1;
+          rinc<=1;
           sys_state2 <= STATE_RUN;
-        // end
+        end
       end
       STATE_RUN:
       begin
