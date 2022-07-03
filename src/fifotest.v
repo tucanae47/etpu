@@ -306,7 +306,7 @@ module edu_tpu #(
          .clk(rclk),
          .rst(rst2),
          .en(en),
-         .w(0),
+         .w(weights),
          .in(rdata),
          .out1(o1),
          .out2(o2),
