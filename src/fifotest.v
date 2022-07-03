@@ -193,6 +193,7 @@ module edu_tpu #(
         end
         STATE_DORMANT:
         begin
+          if (o_data <= 4) begin
             if (ops_hidden > 6*4) begin
               if(caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS)
               begin
@@ -205,6 +206,9 @@ module edu_tpu #(
             end
             else
               ops_hidden <= ops_hidden + 1;
+          end
+          else
+            state_input<=STATE_DORMANT;
 
         end
         default:
@@ -272,19 +276,7 @@ module edu_tpu #(
         end
         STATE_STOP:
         begin
-          if (o_data > 4)
-          begin
-            o_data <= 4'b0;
-            state_tpu <= STATE_DORMANT;
-            c1 <= 0;
-            c2 <= 0;
-            c3 <= 0;
-            weights <= 96'b0;
-          end
-          else
-          begin
-            // write to the bus the result
-          end
+          state_tpu <= STATE_DORMANT;
         end
         default:
           state_tpu <= STATE_DORMANT;
