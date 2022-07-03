@@ -70,7 +70,6 @@ async def test_etpu_wb(dut):
 
     for i in range(1):
         await reset(dut)
-        await reset2(dut)
 
         W = [[1, 4, 5],
              [5, 8, 9],
@@ -110,6 +109,8 @@ async def test_etpu_wb(dut):
 
         # # fetch it
         # print(data, "-----------")
+
+        await reset2(dut)
         w_data = int(I[0][0])
         await test_wb_set(caravel_bus, base_addr, w_data)
         w_data = int(I[1][0]) << 8 | int(I[0][1])
@@ -122,9 +123,11 @@ async def test_etpu_wb(dut):
         await test_wb_set(caravel_bus, base_addr, w_data)
 
         await ClockCycles(dut.caravel_wb_clk_i, 25)
-
+        for i in range(4):
+           await test_wb_get(caravel_bus, base_addr)
 
         observed = np.zeros((3, 3))
+        print(expected)
         # mask_0 = (1 << 16)-1
         # mask_1 = mask_0 << 16
         # masks = [mask_0, mask_1]

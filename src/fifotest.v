@@ -83,25 +83,27 @@ module edu_tpu #(
   wire [DSIZE-1:0] rdata;
   wire             rempty;
   wire             arempty;
+
+  // we need async fifo to keep to clocks one for the tpu and other for the input stream
   async_fifo
     #(
-    DSIZE,
-    ASIZE
+      DSIZE,
+      ASIZE
     )
     fifo
     (
-    wclk,
-    wrst_n,
-    winc,
-    wdata,
-    wfull,
-    awfull,
-    rclk,
-    rrst_n,
-    rinc,
-    rdata,
-    rempty,
-    arempty
+      wclk,
+      wrst_n,
+      winc,
+      wdata,
+      wfull,
+      awfull,
+      rclk,
+      rrst_n,
+      rinc,
+      rdata,
+      rempty,
+      arempty
     );
 
   reg [16*9-1:0] result_o;
@@ -112,11 +114,13 @@ module edu_tpu #(
 
   localparam STATE_STOP           = 0;
   localparam STATE_RUN         = 1;
-  localparam STATE_LOAD           = 2;
-  localparam STATE_LOAD2           = 3;
+  localparam STATE_INIT         = 5;
+  localparam STATE_LOAD_W           = 2;
+  localparam STATE_LOAD_I           = 3;
   localparam STATE_DORMANT           = 4;
-  reg [2:0]   sys_state,sys_state2;
-  reg [3:0] i, ops, i2;
+  reg [2:0]   state_input,state_tpu;
+  reg [3:0] w_count, ops, i_count;
+  reg [5:0] ops_hidden;
   reg [4:0] o_data;
   reg [7:0] c1,c2,c3;
   wire [15:0] o1,o2,o3;
@@ -134,53 +138,77 @@ module edu_tpu #(
     if(rst)
     begin
       // en <=0;
-      i<=0;
-      i2<=0;
-      ops<=0;
-      wrst_n <= 0;
-      sys_state <= STATE_LOAD;
+      w_count<=0;
+      i_count<=0;
+      wrst_n <= 1;
+      state_input <= STATE_INIT;
       weights <= 96'b0;
       winc<= 0;
-      // caravel_wb_ack_o <= 0;
-      // caravel_wb_dat_o <= 0;
+      ops_hidden <= 0;
+      o_data <= 4'b0;
+      caravel_wb_ack_o <= 0;
+      caravel_wb_dat_o <= 0;
     end
     else
     begin
       // FSM for loading data
-      case(sys_state)
-        STATE_LOAD:
+      case(state_input)
+        STATE_INIT:
         begin
-          if( i == 4)
+          state_input <= STATE_LOAD_W;
+          winc<= 1;
+          wrst_n <= 0;
+          wdata <= 0;
+        end
+        STATE_LOAD_W:
+        begin
+          if( w_count == 4)
           begin
-            sys_state <= STATE_LOAD2;
+            state_input <= STATE_LOAD_I;
             wdata<=0;
             winc<= 1;
           end
           else if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
-            weights [(i*32)+:32] <= caravel_wb_dat_i;
-            i <= i + 1;
+            weights [(w_count*32)+:32] <= caravel_wb_dat_i;
+            w_count <= w_count + 1;
           end
         end
-        STATE_LOAD2:
+        STATE_LOAD_I:
         begin
           if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
-            if (i2 > 2)
+            if (i_count > 3)
             begin
-              sys_state <= STATE_DORMANT;
+              state_input <= STATE_DORMANT;
             end
             else
             begin
-              i2 <=  i2 +1;
+              i_count <=  i_count +1;
             end
             wdata <= caravel_wb_dat_i[23:0];
             // en<=1;
-            
+
           end
         end
+        STATE_DORMANT:
+        begin
+            if (ops_hidden > 6*4) begin
+              if(caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS)
+              begin
+                if (o_data == 4)
+                  caravel_wb_dat_o <= result_o[(o_data*32)+:16];
+                else
+                  caravel_wb_dat_o <= result_o[(o_data*32)+:32];
+                o_data <= o_data + 1;
+              end
+            end
+            else
+              ops_hidden <= ops_hidden + 1;
+
+        end
         default:
-          sys_state <= STATE_DORMANT;
+          state_input <= STATE_DORMANT;
       endcase
     end
   end
@@ -189,78 +217,79 @@ module edu_tpu #(
   // we need another clock to stream data into the systolic array using wishbone bus
   always @(posedge rclk)
   begin
-  if(rst2)
+    if(rst2)
     begin
-      rrst_n <= 0;
+      result_o = 144'b0;
+      rrst_n <= 1;
       rinc <=0;
-      sys_state2 <= STATE_DORMANT;
+      ops<=0;
+      o_1 <= 16'b0;
+      o_2 <= 16'b0;
+      o_3 <= 16'b0;
+      c1 <= 0;
+      c2 <= 3;
+      c3 <= 6;
+      state_tpu <= STATE_INIT;
     end
-    else begin 
-    // FSM for systolic array
-    case(sys_state2)
-      STATE_DORMANT:
-      begin
-        if(!arempty)
+    else
+    begin
+      // FSM for systolic array
+      case(state_tpu)
+        STATE_INIT:
         begin
           en<=1;
           rinc<=1;
-          sys_state2 <= STATE_RUN;
+          rrst_n<=0;
+          // got an out already ?
+          if( o_1 > 0)
+            state_tpu <= STATE_RUN;
         end
-      end
-      STATE_RUN:
-      begin
-        if( ops > 6)
+        STATE_RUN:
         begin
-          sys_state2 <= STATE_STOP;
-        end
-        else
-        begin
-          if (ops > 0 && c1 < 3)
+          if( ops > 6)
           begin
-            result_o [(c1*16)+:16] <= o_1;
-            c1 <= c1 +1;
+            state_tpu <= STATE_STOP;
           end
-          if (ops > 1 && c2 < 6)
+          else
           begin
-            result_o [(c2*16)+:16] <= o_2;
-            c2 <= c2 +1;
-          end
-          if (ops > 2 && c3 < 9)
-          begin
-            result_o [(c3*16)+:16] <= o_3;
-            c3 <= c3 +1;
-          end
-          ops<= ops +1;
-        end
-      end
-      STATE_STOP:
-      begin
-        if (o_data > 4)
-        begin
-          o_data <= 4'b0;
-          sys_state2 <= STATE_DORMANT;
-          c1 <= 0;
-          c2 <= 0;
-          c3 <= 0;
-          weights <= 96'b0;
-        end
-        else
-        begin
-          // write to the bus the result
-          if(caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS)
-          begin
-            if (o_data == 4)
-              caravel_wb_dat_o <= result_o[(o_data*32)+:16];
-            else
-              caravel_wb_dat_o <= result_o[(o_data*32)+:32];
-            o_data <= o_data + 1;
+            if (ops > 0 && c1 < 3)
+            begin
+              result_o [(c1*16)+:16] <= o_1;
+              c1 <= c1 +1;
+            end
+            if (ops > 1 && c2 < 6)
+            begin
+              result_o [(c2*16)+:16] <= o_2;
+              c2 <= c2 +1;
+            end
+            if (ops > 2 && c3 < 9)
+            begin
+              result_o [(c3*16)+:16] <= o_3;
+              c3 <= c3 +1;
+            end
+            ops<= ops +1;
           end
         end
-      end
-      default:
-        sys_state2 <= STATE_DORMANT;
-    endcase
-  end
+        STATE_STOP:
+        begin
+          if (o_data > 4)
+          begin
+            o_data <= 4'b0;
+            state_tpu <= STATE_DORMANT;
+            c1 <= 0;
+            c2 <= 0;
+            c3 <= 0;
+            weights <= 96'b0;
+          end
+          else
+          begin
+            // write to the bus the result
+          end
+        end
+        default:
+          state_tpu <= STATE_DORMANT;
+      endcase
+    end
   end
 
 
@@ -283,7 +312,8 @@ module edu_tpu #(
        );
 
 `ifdef COCOTB_SIM
-`ifndef SCANNED
+
+  `ifndef SCANNED
 `define SCANNED
           initial
           begin
@@ -294,5 +324,5 @@ module edu_tpu #(
 `endif
 `endif
 
-endmodule
+        endmodule
 

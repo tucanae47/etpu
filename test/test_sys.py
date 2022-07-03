@@ -59,21 +59,32 @@ async def print_pe_out(out):
 async def test_sys(dut):
     """Test reading data from RAM"""
 
-    for i in range(20):
+    for i in range(1):
         clock = Clock(dut.clk, 10, units="us")
         cocotb.fork(clock.start())
         # np.random.randint(255, size=(3, 3))
         await RST(dut)
 
-        ''' generate random input matrices bit len 7 for the moment , we need to transpose the weights before start '''
-        # W = np.random.randint(8, size=(3,3),dtype=np.dtype(int) )
-        # I = np.random.randint(8, size=(3,3),dtype=np.dtype(int) ).tolist()
-        W = np.random.choice(list(range(1, 128)), (3, 3))
-        # W = W.astype(int)
-        I = np.random.choice(list(range(1, 128)), (3, 3))
-        # I = I.astype(int)
-        '''We need to transpose the matrix as current processing arragement'''
-        Wt = np.array(W).transpose().tolist()
+        W = [[1, 4, 5],
+             [5, 8, 9],
+             [6, 7, 11]]
+
+        Wt = [[1, 5, 6],
+             [4, 8, 7],
+             [5, 9, 11]]
+
+        I = [[1, 5, 12],
+             [5, 9, 0],
+             [6, 11, 19]]
+        # ''' generate random input matrices bit len 7 for the moment , we need to transpose the weights before start '''
+        # # W = np.random.randint(8, size=(3,3),dtype=np.dtype(int) )
+        # # I = np.random.randint(8, size=(3,3),dtype=np.dtype(int) ).tolist()
+        # W = np.random.choice(list(range(1, 128)), (3, 3))
+        # # W = W.astype(int)
+        # I = np.random.choice(list(range(1, 128)), (3, 3))
+        # # I = I.astype(int)
+        # '''We need to transpose the matrix as current processing arragement'''
+        # Wt = np.array(W).transpose().tolist()
         # Wt = Wt.astype(int)
 
         # print(W)
