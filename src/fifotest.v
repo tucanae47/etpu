@@ -108,7 +108,6 @@ module edu_tpu #(
 
   reg [16*9-1:0] result_o;
   reg [96:0] weights;
-  reg [96:0] weights_ready;
   reg [120:0] stream;
   reg loading;
   wire [48:0] wgt;
@@ -144,7 +143,6 @@ module edu_tpu #(
       i_count<=0;
       wrst_n <= 1;
       state_input <= STATE_INIT;
-      // weights_ready <= 96'b0;
       winc<= 0;
       ops_hidden <= 0;
       o_data <= 4'b0;
@@ -169,13 +167,9 @@ module edu_tpu #(
           if( w_count > 2)
           begin
             state_input <= STATE_LOAD_I;
-            // wdata<=0;
-            // winc<= 1;
-            // weights_ready<= weights;
           end
           else if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
-            // weights [(w_count*32)+:32] <= caravel_wb_dat_i;
             wdata<= caravel_wb_dat_i;
             w_count <= w_count + 1;
           end
@@ -193,7 +187,6 @@ module edu_tpu #(
               i_count <=  i_count +1;
             end
             wdata <= caravel_wb_dat_i[23:0];
-            // en<=1;
 
           end
         end
@@ -225,11 +218,11 @@ module edu_tpu #(
 
 
   // we need another clock to stream data into the systolic array using wishbone bus
-  always @(posedge rclk)
+  always @(negedge rclk)
   begin
     if(rst2)
     begin
-      result_o = 144'b0;
+      result_o <= 144'b0;
       rrst_n <= 1;
       rinc <=0;
       ops<=0;
