@@ -57,7 +57,7 @@ module edu_tpu #(
     output reg  [31:0]  caravel_wb_dat_o       // data out
   );
 
-  localparam DSIZE = 24;
+  localparam DSIZE = 32;
   localparam ASIZE = 4;
   wire  rclk;
   wire wclk,rst,rst2;
@@ -127,6 +127,7 @@ module edu_tpu #(
   wire [15:0] o1,o2,o3;
   reg [15:0] o_1,o_2,o_3;
   reg [23:0] input_i;
+  reg [32:0] l_count;
 
   reg en, clocked;
   // CaravelBus reads
@@ -143,8 +144,7 @@ module edu_tpu #(
       i_count<=0;
       wrst_n <= 1;
       state_input <= STATE_INIT;
-      weights <= 96'b0;
-      weights_ready <= 96'b0;
+      // weights_ready <= 96'b0;
       winc<= 0;
       ops_hidden <= 0;
       o_data <= 4'b0;
@@ -161,19 +161,22 @@ module edu_tpu #(
           winc<= 1;
           wrst_n <= 0;
           wdata <= 0;
+           rinc<=1;
+           rrst_n<=0;
         end
         STATE_LOAD_W:
         begin
-          if( w_count == 4)
+          if( w_count > 2)
           begin
             state_input <= STATE_LOAD_I;
-            wdata<=0;
-            winc<= 1;
-            weights_ready<= weights;
+            // wdata<=0;
+            // winc<= 1;
+            // weights_ready<= weights;
           end
           else if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
-            weights [(w_count*32)+:32] <= caravel_wb_dat_i;
+            // weights [(w_count*32)+:32] <= caravel_wb_dat_i;
+            wdata<= caravel_wb_dat_i;
             w_count <= w_count + 1;
           end
         end
@@ -181,7 +184,7 @@ module edu_tpu #(
         begin
           if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
-            if (i_count > 3)
+            if (i_count > 4)
             begin
               state_input <= STATE_DORMANT;
             end
@@ -197,7 +200,7 @@ module edu_tpu #(
         STATE_DORMANT:
         begin
           if (o_data <= 4) begin
-            if (ops_hidden > 6*4) begin
+            if (ops_hidden > 7*4) begin
               if(caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS)
               begin
                 if (o_data == 4)
@@ -230,10 +233,12 @@ module edu_tpu #(
       rrst_n <= 1;
       rinc <=0;
       ops<=0;
+      l_count<=0;
       o_1 <= 16'b0;
       o_2 <= 16'b0;
       o_3 <= 16'b0;
       c1 <= 0;
+      weights <= 96'b0;
       c2 <= 3;
       c3 <= 6;
       state_tpu <= STATE_INIT;
@@ -244,9 +249,18 @@ module edu_tpu #(
       case(state_tpu)
         STATE_INIT:
         begin
-          en<=1;
-          rinc<=1;
-          rrst_n<=0;
+        
+          // load weigths async
+          if( l_count > 2)
+          begin
+            en<=1;
+          end
+          else begin
+            if (rdata > 0 ) begin
+            weights [(l_count*32)+:32] <= rdata;
+            l_count <= l_count + 1;
+            end
+          end
           // got an out already ?
           if( o_1 > 0)
             state_tpu <= STATE_RUN;
@@ -299,7 +313,7 @@ module edu_tpu #(
          .clk(rclk),
          .rst(rst2),
          .en(en),
-         .w(weights_ready),
+         .w(weights),
          .in(rdata),
          .out1(o1),
          .out2(o2),

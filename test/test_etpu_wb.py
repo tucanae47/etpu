@@ -70,6 +70,7 @@ async def test_etpu_wb(dut):
 
     for i in range(1):
         await reset(dut)
+        await reset2(dut)
 
         W = [[1, 4, 5],
              [5, 8, 9],
@@ -110,7 +111,6 @@ async def test_etpu_wb(dut):
         # # fetch it
         # print(data, "-----------")
 
-        await reset2(dut)
         w_data = int(I[0][0])
         await test_wb_set(caravel_bus, base_addr, w_data)
         w_data = int(I[1][0]) << 8 | int(I[0][1])
