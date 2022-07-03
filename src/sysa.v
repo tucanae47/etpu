@@ -39,7 +39,7 @@ module sysa #(
 
 
 
-  always @(*)
+  always @(clk)
   begin
     
       out1 = o_1;

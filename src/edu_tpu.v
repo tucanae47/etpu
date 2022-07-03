@@ -216,7 +216,7 @@ module edu_tpu #(
 
 
   // we need another clock to stream data into the systolic array using wishbone bus
-  always @(posedge rclk)
+  always @(negedge rclk)
   begin
     if(rst2)
     begin
@@ -225,9 +225,9 @@ module edu_tpu #(
       rrst_n<=0;
       ops<=0;
       l_count<=0;
-      // o_1 <= 16'b0;
-      // o_2 <= 16'b0;
-      // o_3 <= 16'b0;
+      o_1 <= 16'b0;
+      o_2 <= 16'b0;
+      o_3 <= 16'b0;
       c1 <= 0;
       weights <= 96'b0;
       c2 <= 3;
@@ -253,7 +253,7 @@ module edu_tpu #(
             end
           end
           // got an out already ?
-          if( o1 > 0)
+          if( o_1 > 0)
             state_tpu <= STATE_RUN;
         end
         STATE_RUN:
@@ -266,17 +266,17 @@ module edu_tpu #(
           begin
             if (ops > 0 && c1 < 3)
             begin
-              result_o [(c1*16)+:16] <= o1;
+              result_o [(c1*16)+:16] <= o_1;
               c1 <= c1 +1;
             end
             if (ops > 1 && c2 < 6)
             begin
-              result_o [(c2*16)+:16] <= o2;
+              result_o [(c2*16)+:16] <= o_2;
               c2 <= c2 +1;
             end
             if (ops > 2 && c3 < 9)
             begin
-              result_o [(c3*16)+:16] <= o3;
+              result_o [(c3*16)+:16] <= o_3;
               c3 <= c3 +1;
             end
             ops<= ops +1;
@@ -293,12 +293,12 @@ module edu_tpu #(
   end
 
 
-  // always @(*)
-  // begin
-  //   o_1 = o1;
-  //   o_2 = o2;
-  //   o_3 = o3;
-  // end
+  always @(rclk)
+  begin
+    o_1 = o1;
+    o_2 = o2;
+    o_3 = o3;
+  end
 
   sysa sa(
          .clk(rclk),
