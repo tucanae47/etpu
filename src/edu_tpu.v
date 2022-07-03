@@ -159,8 +159,6 @@ module edu_tpu #(
           winc<= 1;
           wrst_n <= 0;
           wdata <= 0;
-           rinc<=1;
-           rrst_n<=0;
         end
         STATE_LOAD_W:
         begin
@@ -223,8 +221,8 @@ module edu_tpu #(
     if(rst2)
     begin
       result_o <= 144'b0;
-      rrst_n <= 1;
-      rinc <=0;
+      rinc <=1;
+      rrst_n<=0;
       ops<=0;
       l_count<=0;
       o_1 <= 16'b0;
