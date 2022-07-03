@@ -108,6 +108,7 @@ module edu_tpu #(
 
   reg [16*9-1:0] result_o;
   reg [96:0] weights;
+  reg [96:0] weights_ready;
   reg [120:0] stream;
   reg loading;
   wire [48:0] wgt;
@@ -143,6 +144,7 @@ module edu_tpu #(
       wrst_n <= 1;
       state_input <= STATE_INIT;
       weights <= 96'b0;
+      weights_ready <= 96'b0;
       winc<= 0;
       ops_hidden <= 0;
       o_data <= 4'b0;
@@ -167,6 +169,7 @@ module edu_tpu #(
             state_input <= STATE_LOAD_I;
             wdata<=0;
             winc<= 1;
+            weights_ready<= weights;
           end
           else if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
           begin
@@ -296,7 +299,7 @@ module edu_tpu #(
          .clk(rclk),
          .rst(rst2),
          .en(en),
-         .w(weights),
+         .w(weights_ready),
          .in(rdata),
          .out1(o1),
          .out2(o2),
