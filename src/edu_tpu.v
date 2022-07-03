@@ -164,7 +164,7 @@ module edu_tpu #(
         end
         STATE_LOAD_W:
         begin
-          if( w_count > 2)
+          if( w_count > 3)
           begin
             state_input <= STATE_LOAD_I;
           end
@@ -244,7 +244,7 @@ module edu_tpu #(
         begin
         
           // load weigths async
-          if( l_count > 2)
+          if( l_count > 3)
           begin
             en<=1;
           end
