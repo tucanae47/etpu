@@ -225,9 +225,6 @@ module edu_tpu #(
       rrst_n<=0;
       ops<=0;
       l_count<=0;
-      o_1 <= 16'b0;
-      o_2 <= 16'b0;
-      o_3 <= 16'b0;
       c1 <= 0;
       weights <= 96'b0;
       c2 <= 3;
