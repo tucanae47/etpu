@@ -293,7 +293,7 @@ module edu_tpu #(
   end
 
 
-  always @(rclk)
+  always @(negedge rclk)
   begin
     o_1 = o1;
     o_2 = o2;
@@ -304,8 +304,8 @@ module edu_tpu #(
          .clk(rclk),
          .rst(rst2),
          .en(en),
-         .w(weights[23:0]),
-         .in(rdata),
+         .w(weights),
+         .in(rdata[23:0]),
          .out1(o1),
          .out2(o2),
          .out3(o3)
