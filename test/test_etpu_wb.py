@@ -122,43 +122,20 @@ async def test_etpu_wb(dut):
         w_data = int(I[2][2]) << 16
         await test_wb_set(caravel_bus, base_addr, w_data)
 
-        await ClockCycles(dut.caravel_wb_clk_i, 25)
-        for i in range(4):
-           await test_wb_get(caravel_bus, base_addr)
+        await ClockCycles(dut.caravel_wb_clk_i, 20)
 
         observed = np.zeros((3, 3))
         print(expected)
-        # mask_0 = (1 << 16)-1
-        # mask_1 = mask_0 << 16
-        # masks = [mask_0, mask_1]
-        # values = []
-        # for i in range(5):
-        #     ops = dut.ops.value.integer
-        #     if ops > 6:
-        #         value = await test_wb_get(caravel_bus, base_addr)
-        #         if value is not None :
-        #             for i, mask in enumerate(masks):
-        #                 ob = int((value & mask) >> (i*16))
-        #                 values.append(ob)
-                    
-        # # the real test :P
-        # if len(values) < 9:
-        #         print("failed----------------------------------->")
-        #         print(W)
-        #         print(I)
-        #         assert(0)
-        # else:
-        #     for k in range(9):
-        #         i = int(k / 3)
-        #         j = k % 3
-        #         observed[i][j] = values[k]
-            
-        #     print(observed)
-        #     print(expected)
-        #     for i in range(3):
-        #         for j in range(3):
-        #             assert(observed[i][j] == expected[i][j])
-
+        mask_0 = (1 << 16)-1
+        mask_1 = mask_0 << 16
+        masks = [mask_0, mask_1]
+        for i in range(15):
+            value = await test_wb_get(caravel_bus, base_addr)
+            os = []
+            for i, mask in enumerate(masks):
+                ob = int((value & mask) >> (i*16))
+                os.append(ob)
+            print(int(value), os)
 
 
 

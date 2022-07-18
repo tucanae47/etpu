@@ -36,6 +36,7 @@ module clk_div_n #(
 endmodule
 
 module edu_tpu #(
+    parameter   [7:0]   TPU_END_ADDR  = 8'd0,                  // default start address in RAM to read pattern
     parameter   [31:0]  BASE_ADDRESS    = 32'h3000_0000        // base address
   )(
 
@@ -69,7 +70,6 @@ module edu_tpu #(
             );
 
   assign wclk = caravel_wb_clk_i;
-  // assign clk = caravel_wb_clk_i;
   assign rst = caravel_wb_rst_i;
   assign rst2 = caravel_wb_rst2_i;
 
@@ -105,8 +105,10 @@ module edu_tpu #(
       rempty,
       arempty
     );
-
-  reg [16*9-1:0] result_o;
+  reg [7:0] tpu_mem_addr;
+  reg run;
+ 
+  reg [48*7-1:0] result_o;
   reg [96:0] weights;
   reg [120:0] stream;
   reg loading;
@@ -123,7 +125,8 @@ module edu_tpu #(
   reg [5:0] ops_hidden;
   reg [4:0] o_data;
   reg [7:0] c1,c2,c3;
-  wire [15:0] o1,o2,o3;
+  wire [47:0] o1;
+  // o2,o3;
   reg [15:0] o_1,o_2,o_3;
   reg [23:0] input_i;
   reg [32:0] l_count;
@@ -134,8 +137,8 @@ module edu_tpu #(
   always @(posedge wclk)
   begin
     // return ack
-    caravel_wb_ack_o <= (caravel_wb_stb_i && caravel_wb_adr_i == BASE_ADDRESS);
 
+    caravel_wb_ack_o <= (caravel_wb_stb_i && caravel_wb_adr_i == BASE_ADDRESS);
     if(rst)
     begin
       // en <=0;
@@ -143,6 +146,7 @@ module edu_tpu #(
       i_count<=0;
       wrst_n <= 1;
       state_input <= STATE_INIT;
+      tpu_mem_addr <= 4;
       winc<= 0;
       ops_hidden <= 0;
       o_data <= 4'b0;
@@ -190,23 +194,16 @@ module edu_tpu #(
         end
         STATE_DORMANT:
         begin
-          if (o_data <= 4) begin
-            if (ops_hidden > 7*4) begin
-              if(caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS)
+          if (o_data < 10) begin
+              if(caravel_wb_ack_o && caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS )
               begin
-                if (o_data == 4)
-                  caravel_wb_dat_o <= result_o[(o_data*32)+:16];
-                else
-                  caravel_wb_dat_o <= result_o[(o_data*32)+:32];
-                o_data <= o_data + 1;
+                caravel_wb_dat_o <= result_o[(o_data*32)+:32];
+                o_data <= o_data + 1'd1;
               end
-            end
-            else
-              ops_hidden <= ops_hidden + 1;
           end
           else
+            o_data<=0;
             state_input<=STATE_DORMANT;
-
         end
         default:
           state_input <= STATE_DORMANT;
@@ -215,12 +212,14 @@ module edu_tpu #(
   end
 
 
+
+
   // we need another clock to stream data into the systolic array using wishbone bus
-  always @(negedge rclk)
+  always @(posedge rclk)
   begin
     if(rst2)
     begin
-      result_o <= 144'b0;
+      result_o <= 240'b0;
       rinc <=1;
       rrst_n<=0;
       ops<=0;
@@ -236,6 +235,7 @@ module edu_tpu #(
     end
     else
     begin
+
       // FSM for systolic array
       case(state_tpu)
         STATE_INIT:
@@ -245,6 +245,8 @@ module edu_tpu #(
           if( l_count > 2)
           begin
             en<=1;
+            ops<=0;
+            state_tpu <= STATE_RUN;
           end
           else begin
             if (rdata > 0 ) begin
@@ -252,35 +254,14 @@ module edu_tpu #(
             l_count <= l_count + 1;
             end
           end
-          // got an out already ?
-          if( o_1 > 0)
-            state_tpu <= STATE_RUN;
         end
         STATE_RUN:
         begin
-          if( ops > 6)
-          begin
-            state_tpu <= STATE_STOP;
+          if (ops > 2 && c1 < 5) begin
+            result_o [(c1*48)+:48] <= o1;
+            c1 <= c1 +1;
           end
-          else
-          begin
-            if (ops > 0 && c1 < 3)
-            begin
-              result_o [(c1*16)+:16] <= o_1;
-              c1 <= c1 +1;
-            end
-            if (ops > 1 && c2 < 6)
-            begin
-              result_o [(c2*16)+:16] <= o_2;
-              c2 <= c2 +1;
-            end
-            if (ops > 2 && c3 < 9)
-            begin
-              result_o [(c3*16)+:16] <= o_3;
-              c3 <= c3 +1;
-            end
-            ops<= ops +1;
-          end
+          ops<= ops +1;
         end
         STATE_STOP:
         begin
@@ -293,22 +274,13 @@ module edu_tpu #(
   end
 
 
-  always @(negedge rclk)
-  begin
-    o_1 = o1;
-    o_2 = o2;
-    o_3 = o3;
-  end
-
   sysa sa(
          .clk(rclk),
          .rst(rst2),
          .en(en),
          .w(weights),
          .in(rdata[23:0]),
-         .out1(o1),
-         .out2(o2),
-         .out3(o3)
+         .out(o1)
        );
 
 `ifdef COCOTB_SIM

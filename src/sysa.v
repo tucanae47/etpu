@@ -11,9 +11,7 @@ module sysa #(
     input en,
     input [(8*N*N)-1:0] w,
     input [(8*N)-1:0] in,
-    output reg [15:0] out1,
-    output reg [15:0] out2,
-    output reg [15:0] out3
+    output reg [47:0] out
   );
 
   reg [15:0] zero = 15'b0;
@@ -41,10 +39,6 @@ module sysa #(
 
   always @(clk)
   begin
-    
-      out1 = o_1;
-      out2 = o_2;
-      out3 = o_3;
-  //   // out=  {o_3, o_2, o_1};
+    out=  {o_3, o_2, o_1};
   end
 endmodule
