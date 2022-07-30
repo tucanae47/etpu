@@ -41,6 +41,17 @@ async def reset2(dut):
     dut.caravel_wb_rst2_i = 0
     await ClockCycles(dut.caravel_wb_clk_i, 4)
 
+def diagonal(arr, n):
+    ans = [[] for i in range(n*2 - 1)]
+    for i in range(n):
+        for j in range(n):
+            ans[i + j].append(arr[i][j])
+    vecna = []
+    for i in range(len(ans)):
+        for j in range(len(ans[i])):
+            vecna.append(ans[i][j])
+    return vecna
+
 @cocotb.test()
 async def test_etpu_wb(dut):
     """
@@ -48,10 +59,6 @@ async def test_etpu_wb(dut):
     """
     clock = Clock(dut.caravel_wb_clk_i, 10, units="us")
     
-
-    #dut.rambus_wb_ack_i = 1;
-    #dut.rambus_wb_dat_i = 0xABCDEFAB;
-
     cocotb.fork(clock.start())
 
     caravel_bus_signals_dict = {
@@ -66,30 +73,28 @@ async def test_etpu_wb(dut):
 
     caravel_bus = WishboneMaster(dut, "", dut.caravel_wb_clk_i, width=32, timeout=10, signals_dict=caravel_bus_signals_dict)
     
-    # ram_bus     = WishboneRAM    (dut, dut.rambus_wb_clk_o, ram_bus_signals_dict)
-
-    for i in range(1):
+    for k in range(200):
         await reset(dut)
         await reset2(dut)
 
-        W = [[1, 4, 5],
-             [5, 8, 9],
-             [6, 7, 11]]
+        # W = [[1, 4, 5],
+        #      [5, 8, 9],
+        #      [6, 7, 11]]
 
-        Wt = [[1, 5, 6],
-             [4, 8, 7],
-             [5, 9, 11]]
+        # Wt = [[1, 5, 6],
+        #      [4, 8, 7],
+        #      [5, 9, 11]]
 
-        I = [[1, 5, 12],
-             [5, 9, 0],
-             [6, 11, 19]]
+        # I = [[1, 5, 12],
+        #      [5, 9, 0],
+        #      [6, 11, 19]]
 
-        # W = np.random.choice(list(range(1, 128)), (3, 3))
-        # # W = W.astype(int)
-        # I = np.random.choice(list(range(1, 128)), (3, 3))
-        # # I = I.astype(int)
-        # '''We need to transpose the matrix as current processing arragement'''
-        # Wt = np.array(W).transpose().tolist()
+        W = np.random.choice(list(range(1, 128)), (3, 3))
+        # W = W.astype(int)
+        I = np.random.choice(list(range(1, 128)), (3, 3))
+        # I = I.astype(int)
+        '''We need to transpose the matrix as current processing arragement'''
+        Wt = np.array(W).transpose().tolist()
         
         # expected = np.matmul(np.array(Wt), np.array(I))
         expected = np.matmul(W, I)
@@ -108,8 +113,6 @@ async def test_etpu_wb(dut):
         # TODO:? need to send another value to the bus, dunno why yet 
         await test_wb_set(caravel_bus, base_addr, 0)
 
-        # # fetch it
-        # print(data, "-----------")
 
         w_data = int(I[0][0])
         await test_wb_set(caravel_bus, base_addr, w_data)
@@ -123,19 +126,54 @@ async def test_etpu_wb(dut):
         await test_wb_set(caravel_bus, base_addr, w_data)
 
         await ClockCycles(dut.caravel_wb_clk_i, 20)
+        # for i in range(4):
+        #    await test_wb_get(caravel_bus, base_addr)
 
         observed = np.zeros((3, 3))
         print(expected)
         mask_0 = (1 << 16)-1
         mask_1 = mask_0 << 16
         masks = [mask_0, mask_1]
-        for i in range(15):
+        # print(int(value),hex(value))
+        all = []
+        for i in range(10):
             value = await test_wb_get(caravel_bus, base_addr)
             os = []
             for i, mask in enumerate(masks):
                 ob = int((value & mask) >> (i*16))
                 os.append(ob)
-            print(int(value), os)
+            all.extend(os)
+
+        DIM = 3
+        skips,grabs = [], []
+        for j in range(DIM,0,-1):
+            skip = j -1 
+            grab = DIM - skip
+            skips.append(skip)
+            grabs.append(grab)
+        for j in range(1,DIM):
+            skip = j 
+            grab = DIM - skip
+            skips.append(skip)
+            grabs.append(grab)
+
+        head = 2
+        observed = []
+        for i in range(DIM):
+            for i in range(grabs[i]):
+                observed.append(all[head])
+                head += 1
+            head += skips[i]
+
+        for i in range(DIM, len(grabs)):
+            head += skips[i]
+            for i in range(grabs[i]):
+                observed.append(all[head])
+                head += 1
+
+        expected = diagonal(expected,DIM)
+        for k in range(9):
+            assert(expected[k] == observed[k])
 
 
 

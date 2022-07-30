@@ -70,6 +70,7 @@ module edu_tpu #(
             );
 
   assign wclk = caravel_wb_clk_i;
+  // assign clk = caravel_wb_clk_i;
   assign rst = caravel_wb_rst_i;
   assign rst2 = caravel_wb_rst2_i;
 
@@ -105,9 +106,10 @@ module edu_tpu #(
       rempty,
       arempty
     );
+  // tpu registers
   reg [7:0] tpu_mem_addr;
   reg run;
- 
+
   reg [48*7-1:0] result_o;
   reg [96:0] weights;
   reg [120:0] stream;
@@ -194,25 +196,23 @@ module edu_tpu #(
         end
         STATE_DORMANT:
         begin
-          if (o_data < 10) begin
-              if(caravel_wb_ack_o && caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS )
-              begin
-                caravel_wb_dat_o <= result_o[(o_data*32)+:32];
-                o_data <= o_data + 1'd1;
-              end
+          if (o_data < 10)
+          begin
+            if(caravel_wb_ack_o && caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS )
+            begin
+              caravel_wb_dat_o <= result_o[(o_data*32)+:32];
+              o_data <= o_data + 1'd1;
+            end
           end
           else
             o_data<=0;
-            state_input<=STATE_DORMANT;
+          state_input<=STATE_DORMANT;
         end
         default:
           state_input <= STATE_DORMANT;
       endcase
     end
   end
-
-
-
 
   // we need another clock to stream data into the systolic array using wishbone bus
   always @(posedge rclk)
@@ -235,12 +235,10 @@ module edu_tpu #(
     end
     else
     begin
-
       // FSM for systolic array
       case(state_tpu)
         STATE_INIT:
         begin
-        
           // load weigths async
           if( l_count > 2)
           begin
@@ -248,16 +246,19 @@ module edu_tpu #(
             ops<=0;
             state_tpu <= STATE_RUN;
           end
-          else begin
-            if (rdata > 0 ) begin
-            weights [(l_count*32)+:32] <= rdata;
-            l_count <= l_count + 1;
+          else
+          begin
+            if (rdata > 0 )
+            begin
+              weights [(l_count*32)+:32] <= rdata;
+              l_count <= l_count + 1;
             end
           end
         end
         STATE_RUN:
         begin
-          if (ops > 2 && c1 < 5) begin
+          if (ops > 2 && c1 < 5)
+          begin
             result_o [(c1*48)+:48] <= o1;
             c1 <= c1 +1;
           end
