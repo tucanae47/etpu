@@ -65,7 +65,7 @@ module dfframnpu
       out_m[memout_addr + 2] <= o_2;
       out_m[memout_addr + 3] <= o_3;
     end
-    dat_o2 	<= w2[adr_r];
+    dat_o2 	<= out_m[adr_r];
   end
 
 
