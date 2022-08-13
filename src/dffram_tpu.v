@@ -1,18 +1,3 @@
-// SPDX-FileCopyrightText: 2021 renzym.com
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// SPDX-License-Identifier: Apache-2.0
-// SPDX-FileContributor: Tayyeb Mahmood <tayyeb@uet.edu.pk>
 
 module dfframnpu
   #(
@@ -22,18 +7,11 @@ module dfframnpu
    )
    (
 
-
-
-
-
-
-
      input          				clk,
      input          				clk2,
      input          				we,
      input rst,
      input en,
-    //  input [(8*N)-1:0] in,
      input  		[DWIDTH-1:0]	dat_i,
      input  		[AWIDTH-1:0]	adr_w,
      input  		[AWIDTH-1:0]	adr_r,
@@ -78,8 +56,10 @@ module dfframnpu
   pe pe_32(.clk(clk2), .rst(rst), .en(en), .up(d_22), .left(r_31), .w(w[7]), .right(r_32), .down(o_2));
   pe pe_33(.clk(clk2), .rst(rst), .en(en), .up(d_23), .left(r_32), .w(w[8]), .right(r_33), .down(o_3));
 
-  always @(posedge clk2) begin
-    if (en)begin
+  always @(posedge clk2)
+  begin
+    if (en)
+    begin
       memout_addr<= memout_addr + 3;
       out_m[memout_addr + 1] <= o_1;
       out_m[memout_addr + 2] <= o_2;
