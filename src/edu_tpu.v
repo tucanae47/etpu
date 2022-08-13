@@ -47,7 +47,7 @@ module edu_tpu #(
 
     input wire          caravel_wb_clk_i,       // clock, runs at system clock
     input wire          caravel_wb_rst_i,       // main system reset
-    input wire          caravel_wb_rst2_i,       // main system reset
+    // input wire          caravel_wb_rst2_i,       // main system reset
     input wire          caravel_wb_stb_i,       // write strobe
     input wire          caravel_wb_cyc_i,       // cycle
     input wire          caravel_wb_we_i,        // write enable
@@ -69,10 +69,22 @@ module edu_tpu #(
               .clk_out(rclk)
             );
 
+  reg rst_npu = 1'b1; // No reset button on this board
+
+  reg [2:0] rst_cnt = 0;
+  // wire rstq = &rst_cnt;
+
+  always @(negedge rclk) begin
+    if (rst_cnt < 1) rst_cnt <= rst_cnt + 1;
+    else        rst_npu <= 0;
+  end
+
+
   assign wclk = caravel_wb_clk_i;
   // assign clk = caravel_wb_clk_i;
   assign rst = caravel_wb_rst_i;
-  assign rst2 = caravel_wb_rst2_i;
+  // assign rst2 = caravel_wb_rst2_i;
+  assign rst2 = rst_npu;
 
   reg  winc;
   reg  [DSIZE-1:0] wdata;
@@ -231,6 +243,7 @@ module edu_tpu #(
       weights <= 96'b0;
       c2 <= 3;
       c3 <= 6;
+      // rst2<=0;
       state_tpu <= STATE_INIT;
     end
     else
@@ -262,11 +275,16 @@ module edu_tpu #(
             result_o [(c1*48)+:48] <= o1;
             c1 <= c1 +1;
           end
+          else if (ops > 8)
+            state_tpu <= STATE_STOP;
+            // rst2<= 1;
           ops<= ops +1;
         end
         STATE_STOP:
         begin
-          state_tpu <= STATE_DORMANT;
+          rst_cnt <= 1'b0;
+          rst_npu <= 1'b1;
+          // state_tpu <= STATE_INIT;
         end
         default:
           state_tpu <= STATE_DORMANT;
