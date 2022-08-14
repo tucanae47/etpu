@@ -133,7 +133,7 @@ async def test_etpu_wb(dut):
         await test_wb_set(caravel_bus, base_addr, w_data)
 
 
-        for i in range(20, 200):
+        for i in range(28, 48):
             value = await test_wb_get(caravel_bus, base_addr + i)
             print(value)
         # await test_wb_set(caravel_bus, base_addr, 0)

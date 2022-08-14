@@ -7,6 +7,7 @@
 `define KERNEL_SIZE 2
 `define THRESHOLD 2
 
+
 module clk_div_n #(
     parameter WIDTH = 7)
 
@@ -37,7 +38,7 @@ endmodule
 
 module edu_tpu #(
     parameter   [7:0]   TPU_END_ADDR  = 8'd0,                  // default start address in RAM to read pattern
-    parameter   [31:0]  BASE_ADDRESS    = 32'h3000_0000        // base address
+    parameter   [23:0]  BASE_ADDRESS    = 24'h3000_00        // base address
   )(
 
 `ifdef USE_POWER_PINS
@@ -47,260 +48,99 @@ module edu_tpu #(
 
     input wire          caravel_wb_clk_i,       // clock, runs at system clock
     input wire          caravel_wb_rst_i,       // main system reset
-    // input wire          caravel_wb_rst2_i,       // main system reset
     input wire          caravel_wb_stb_i,       // write strobe
     input wire          caravel_wb_cyc_i,       // cycle
     input wire          caravel_wb_we_i,        // write enable
     input wire  [3:0]   caravel_wb_sel_i,       // write word select
     input wire  [31:0]  caravel_wb_dat_i,       // data in
     input wire  [31:0]  caravel_wb_adr_i,       // address
-    output reg          caravel_wb_ack_o,       // ack
-    output reg  [31:0]  caravel_wb_dat_o       // data out
+    output          caravel_wb_ack_o,       // ack
+    output [31:0]  caravel_wb_dat_o       // data out
   );
-
-  localparam DSIZE = 32;
-  localparam ASIZE = 4;
-  wire  rclk;
-  wire wclk,rst,rst2;
-  clk_div_n div(
-              .rst(rst),
-              .clk(caravel_wb_clk_i),
-              .div_num(4),
-              .clk_out(rclk)
-            );
-
-  reg rst_npu = 1'b1; // No reset button on this board
-
-  reg [2:0] rst_cnt = 0;
-  // wire rstq = &rst_cnt;
-
-  always @(negedge rclk) begin
-    if (rst_cnt < 1) rst_cnt <= rst_cnt + 1;
-    else        rst_npu <= 0;
-  end
-
-
-  assign wclk = caravel_wb_clk_i;
-  // assign clk = caravel_wb_clk_i;
-  assign rst = caravel_wb_rst_i;
-  // assign rst2 = caravel_wb_rst2_i;
-  assign rst2 = rst_npu;
-
-  reg  winc;
-  reg  [DSIZE-1:0] wdata;
-  reg              wrst_n;
-  wire             wfull;
-  wire             awfull;
-  reg              rrst_n;
-  reg              rinc;
-  wire [DSIZE-1:0] rdata;
-  wire             rempty;
-  wire             arempty;
-
-  // we need async fifo to keep to clocks one for the tpu and other for the input stream
-  async_fifo
-    #(
-      DSIZE,
-      ASIZE
-    )
-    fifo
-    (
-      wclk,
-      wrst_n,
-      winc,
-      wdata,
-      wfull,
-      awfull,
-      rclk,
-      rrst_n,
-      rinc,
-      rdata,
-      rempty,
-      arempty
-    );
-  // tpu registers
-  reg [7:0] tpu_mem_addr;
-  reg run;
-
-  reg [48*7-1:0] result_o;
-  reg [96:0] weights;
-  reg [120:0] stream;
-  reg loading;
-  wire [48:0] wgt;
 
   localparam STATE_STOP           = 0;
   localparam STATE_RUN         = 1;
-  localparam STATE_INIT         = 5;
-  localparam STATE_LOAD_W           = 2;
-  localparam STATE_LOAD_I           = 3;
-  localparam STATE_DORMANT           = 4;
+  // read
+  reg				ready;
+  wire		[31:0]	rdata;
+  wire clk, reset, valid, we_img_ram;
+  assign caravel_wb_dat_o = rdata;
+  assign caravel_wb_ack_o = ready;
+
+  // write
+  wire	[23:0]	img_data;
+  wire	[7:0]	w_addr;
+  wire [23:0] debug;
+  wire [47:0] npu_o;
+  // assign debug = caravel_wb_adr_i[34:4];
+  assign w_addr = caravel_wb_adr_i[7:0];
+  assign clk 	= caravel_wb_clk_i;
+  assign reset	= caravel_wb_rst_i;
+
   reg [2:0]   state_input,state_tpu;
-  reg [3:0] w_count, ops, i_count;
-  reg [5:0] ops_hidden;
-  reg [4:0] o_data;
-  reg [7:0] c1,c2,c3;
-  wire [47:0] o1;
-  // o2,o3;
-  reg [15:0] o_1,o_2,o_3;
-  reg [23:0] input_i;
-  reg [32:0] l_count;
 
-  reg en, clocked;
-  // CaravelBus reads
+  reg en;
+  assign valid 	= caravel_wb_cyc_i & caravel_wb_stb_i;
+  assign debug = caravel_wb_adr_i[31:8];
 
-  always @(posedge wclk)
+//   assign we_img_ram	= (caravel_wb_adr_i[31:4] == BASE_ADDRESS) & (caravel_wb_adr_i[1:0]==1) & valid & caravel_wb_we_i;
+  assign we_img_ram	= (caravel_wb_adr_i[31:8] == BASE_ADDRESS) & valid & caravel_wb_we_i;
+
+  always@(posedge clk)
+    if(reset | ready)
+      ready <= 0;
+    else if(valid & ~ready)
+      ready <= 1;
+
+
+  dfframnpu
+    #(
+      .DWIDTH (24),
+      .AWIDTH (9 )
+    )
+    systolic_ram
+    (
+      .clk		(clk			),
+      .clk2		(ready		),
+      .we			(we_img_ram		),
+      .dat_o		(				),
+      .dat_o2		(rdata		),
+      .dat_i		(caravel_wb_dat_i[23:0]),
+      .adr_w		(w_addr	),
+      .adr_r		(w_addr		),
+      .en(en), 
+      .out(npu_o)
+
+    );
+
+
+ always @(posedge clk)
   begin
-    // return ack
-
-    caravel_wb_ack_o <= (caravel_wb_stb_i && caravel_wb_adr_i == BASE_ADDRESS);
-    if(rst)
+    if(reset)
     begin
-      // en <=0;
-      w_count<=0;
-      i_count<=0;
-      wrst_n <= 1;
-      state_input <= STATE_INIT;
-      tpu_mem_addr <= 4;
-      winc<= 0;
-      ops_hidden <= 0;
-      o_data <= 4'b0;
-      caravel_wb_ack_o <= 0;
-      caravel_wb_dat_o <= 0;
-    end
-    else
-    begin
-      // FSM for loading data
-      case(state_input)
-        STATE_INIT:
-        begin
-          state_input <= STATE_LOAD_W;
-          winc<= 1;
-          wrst_n <= 0;
-          wdata <= 0;
-        end
-        STATE_LOAD_W:
-        begin
-          if( w_count > 2)
-          begin
-            state_input <= STATE_LOAD_I;
-          end
-          else if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
-          begin
-            wdata<= caravel_wb_dat_i;
-            w_count <= w_count + 1;
-          end
-        end
-        STATE_LOAD_I:
-        begin
-          if(caravel_wb_stb_i && caravel_wb_cyc_i && caravel_wb_we_i && caravel_wb_ack_o && caravel_wb_adr_i == BASE_ADDRESS)
-          begin
-            if (i_count > 4)
-            begin
-              state_input <= STATE_DORMANT;
-            end
-            else
-            begin
-              i_count <=  i_count +1;
-            end
-            wdata <= caravel_wb_dat_i[23:0];
-
-          end
-        end
-        STATE_DORMANT:
-        begin
-          if (o_data < 10)
-          begin
-            if(caravel_wb_ack_o && caravel_wb_stb_i && caravel_wb_cyc_i && !caravel_wb_we_i && caravel_wb_adr_i == BASE_ADDRESS )
-            begin
-              caravel_wb_dat_o <= result_o[(o_data*32)+:32];
-              o_data <= o_data + 1'd1;
-            end
-          end
-          else
-            o_data<=0;
-          state_input<=STATE_DORMANT;
-        end
-        default:
-          state_input <= STATE_DORMANT;
-      endcase
-    end
-  end
-
-  // we need another clock to stream data into the systolic array using wishbone bus
-  always @(posedge rclk)
-  begin
-    if(rst2)
-    begin
-      result_o <= 240'b0;
-      rinc <=1;
-      rrst_n<=0;
-      ops<=0;
-      l_count<=0;
-      o_1 <= 16'b0;
-      o_2 <= 16'b0;
-      o_3 <= 16'b0;
-      c1 <= 0;
-      weights <= 96'b0;
-      c2 <= 3;
-      c3 <= 6;
-      // rst2<=0;
-      state_tpu <= STATE_INIT;
+      en <=0;
+      state_tpu <= STATE_STOP;
     end
     else
     begin
       // FSM for systolic array
       case(state_tpu)
-        STATE_INIT:
+        STATE_STOP:
         begin
           // load weigths async
-          if( l_count > 2)
-          begin
-            en<=1;
-            ops<=0;
-            state_tpu <= STATE_RUN;
-          end
-          else
-          begin
-            if (rdata > 0 )
-            begin
-              weights [(l_count*32)+:32] <= rdata;
-              l_count <= l_count + 1;
-            end
-          end
+           if (w_addr + 1 == 9) begin
+              en<=1;
+              state_tpu<= STATE_RUN;
+           end
         end
         STATE_RUN:
         begin
-          if (ops > 2 && c1 < 5)
-          begin
-            result_o [(c1*48)+:48] <= o1;
-            c1 <= c1 +1;
-          end
-          else if (ops > 8)
-            state_tpu <= STATE_STOP;
-            // rst2<= 1;
-          ops<= ops +1;
+          // en<=0;
         end
-        STATE_STOP:
-        begin
-          rst_cnt <= 1'b0;
-          rst_npu <= 1'b1;
-          // state_tpu <= STATE_INIT;
-        end
-        default:
-          state_tpu <= STATE_DORMANT;
       endcase
     end
   end
 
-
-  sysa sa(
-         .clk(rclk),
-         .rst(rst2),
-         .en(en),
-         .w(weights),
-         .in(rdata[23:0]),
-         .out(o1)
-       );
 
 `ifdef COCOTB_SIM
 
