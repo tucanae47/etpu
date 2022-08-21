@@ -33,7 +33,8 @@ module npu_wb #(
     wire rst = wb_rst_i;
 	reg [DWIDTH-1:0] w [0:(2**AWIDTH)-1];
     reg [DWIDTH-1:0] out_m [0:(2**AWIDTH)-1];
-    reg in1,in2,in3,en;
+    reg [7:0] in1,in2,in3;
+    reg en;
 	always @(posedge clk) begin
         if(wb_stb_i && wb_cyc_i && wb_we_i) begin
             if(wb_adr_i[31:8] == W_ADDRESS)
