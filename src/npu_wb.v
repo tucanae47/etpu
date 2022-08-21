@@ -55,8 +55,8 @@ module npu_wb #(
         if(rst)
             wb_ack_o <= 0;
         else
-            // return ack immediately
-            wb_ack_o <= (wb_stb_i && wb_adr_i[31:8] == W_ADDRESS);
+            // return ack immediately on every valid address
+            wb_ack_o <= (wb_stb_i && (wb_adr_i[31:8] == W_ADDRESS || wb_adr_i[31:8] == R_ADDRESS || wb_adr_i[31:8] == S_ADDRESS));
     end
 
     reg [15:0] zero = 15'b0;
