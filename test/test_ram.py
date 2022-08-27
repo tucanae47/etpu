@@ -113,7 +113,7 @@ async def test_etpu_wb(dut):
         # print(Wtdiag)
         for i,w in enumerate(Wtdiag):
             print(i,w)
-            await test_wb_set(caravel_bus, base_addr + i, w)
+            await test_wb_set(caravel_bus, base_addr + (i * 4), w)
 
         # TODO:? need to send another value to the bus, dunno why yet 
         # await test_wb_set(caravel_bus, base_addr, 0)
@@ -121,19 +121,35 @@ async def test_etpu_wb(dut):
         await ClockCycles(dut.caravel_wb_clk_i, 2)
        
        
+        i =0;
+        base_addr = 0x3000_0100
         w_data = int(I[0][0])
-        await test_wb_set(caravel_bus, base_addr, w_data)
+        await test_wb_set(caravel_bus, base_addr + (i * 4), w_data)
+        # w_data = 0 << 24 | int(I[1][0]) << 8 | int(I[0][1])
         w_data = int(I[1][0]) << 8 | int(I[0][1])
-        await test_wb_set(caravel_bus, base_addr, w_data)
+        i = i + 1
+
+        # await ClockCycles(dut.caravel_wb_clk_i, 20)
+        await test_wb_set(caravel_bus, base_addr + (i * 4), w_data)
+        # w_data = 0 << 24 |int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
         w_data = int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
-        await test_wb_set(caravel_bus, base_addr, w_data)
+        i = i + 1
+
+        await test_wb_set(caravel_bus, base_addr + (i * 4), w_data)
+        # w_data = 0 << 24 | int(I[2][1]) << 16 | int(I[1][2]) << 8
         w_data = int(I[2][1]) << 16 | int(I[1][2]) << 8
-        await test_wb_set(caravel_bus, base_addr, w_data)
-        w_data = int(I[2][2]) << 16
-        await test_wb_set(caravel_bus, base_addr, w_data)
+        i = i + 1
+
+        await test_wb_set(caravel_bus, base_addr + (i * 4), w_data)
+        w_data = int(1) << 24 | int(I[2][2]) << 16
+        i = i + 1
+
+        # await ClockCycles(dut.caravel_wb_clk_i, 20)
+        await test_wb_set(caravel_bus, base_addr + (i * 4), w_data)
 
 
-        for i in range(28, 48):
+        base_addr = 0x3000_0200
+        for i in range(1,50):
             value = await test_wb_get(caravel_bus, base_addr + i)
             print(value)
         # await test_wb_set(caravel_bus, base_addr, 0)
