@@ -45,6 +45,9 @@ module npu_wb #(
     reg [7:0] debug_a = 8'b0;
     reg[3:0] count = 4'd0;
 	always @(posedge clk) begin
+        if(rst) begin
+            load_end <= 0;
+        end
         if(wb_stb_i && wb_cyc_i && wb_we_i) begin
             if(wb_adr_i[31:8] == W_ADDRESS)
 			    w[wb_adr_i[7:0]] <= wb_dat_i;
@@ -52,6 +55,8 @@ module npu_wb #(
                 load_end<= wb_dat_i[28:24];
 			    IN[count] <= wb_dat_i[23:0];
                 count <= count + 1;
+                if (load_end==4) 
+                    count<=0;
             end
         end
         else if(wb_stb_i && wb_cyc_i && !wb_we_i && wb_adr_i[31:8] == R_ADDRESS) begin
@@ -72,7 +77,6 @@ module npu_wb #(
     reg [3:0] mem_addr;
     always @(posedge clk) begin
         if (rst) begin
-            load_end <= 0;
             en<=0;
             mem_addr <= 0;
         end
@@ -88,7 +92,6 @@ module npu_wb #(
             mem_addr<=0;
             en<=0;
             memout_addr<=0;
-            count<=0;
         end
     end
 
