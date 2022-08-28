@@ -91,7 +91,6 @@ module npu_wb #(
         else if (load_end==4) begin
             mem_addr<=0;
             en<=0;
-            memout_addr<=0;
         end
     end
 
@@ -128,6 +127,8 @@ module npu_wb #(
             out_m[(memout_addr + 2) * 4] <= o_3;
             out1<=o_1;
         end
+        else if (load_end==4) 
+            memout_addr<=0;
     end
 
 endmodule
