@@ -64,8 +64,6 @@ module npu_wb #(
     always @(posedge clk) begin
         if(rst) begin
             wb_ack_o <= 0;
-            load_end <= 0;
-            en<=0;
         end
         else
             wb_ack_o <= (wb_stb_i && (wb_adr_i[31:8] == W_ADDRESS || wb_adr_i[31:8] == R_ADDRESS || wb_adr_i[31:8] == S_ADDRESS));
@@ -73,8 +71,11 @@ module npu_wb #(
 
     reg [3:0] mem_addr;
     always @(posedge clk) begin
-        if (rst)
+        if (rst) begin
+            load_end <= 0;
+            en<=0;
             mem_addr <= 0;
+        end
         else if (load_end==3 && mem_addr < 12) begin
             //wishbone value stays longer
             mem_addr <= mem_addr + 2;
