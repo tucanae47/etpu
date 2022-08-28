@@ -34,12 +34,13 @@ module npu_wb #(
 	reg [DWIDTH-1:0] w [0:(2**AWIDTH)-1];
 	// reg [(DWIDTH*9)-1:0] IN;
     reg [DWIDTH-1:0] IN [0:(2**AWIDTH)-1];
-    reg [DWIDTH-1:0] out_m [0:(2**AWIDTH)-1];
+    reg [DWIDTH-1:0] out_m [0:(2**12)-1];
     // reg [DWIDTH-1:0] out_m [0:(2**AWIDTH)-1];
     reg [7:0] in1,in2,in3;
     reg [7:0] in1_,in2_,in3_;
 
     reg [23:0] debug = 24'b0;
+    reg [7:0] debug_a = 8'b0;
     reg en,load_end;
     reg[4:0] count = 4'd0;
 	always @(posedge clk) begin
@@ -53,6 +54,7 @@ module npu_wb #(
             end
         end
         else if(wb_stb_i && wb_cyc_i && !wb_we_i && wb_adr_i[31:8] == R_ADDRESS) begin
+            debug_a <= wb_adr_i[7:0];
             wb_dat_o <= out_m[wb_adr_i[7:0]];
         end
         // else en<=0;
@@ -78,14 +80,19 @@ module npu_wb #(
             //wishbone value stays longer
             mem_addr <= mem_addr + 2;
             in1 <= IN[mem_addr][7:0];
-            in2 <= IN[mem_addr ][15:8];
-            in3 <= IN[mem_addr ][23:16];
+            in2 <= IN[mem_addr][15:8];
+            in3 <= IN[mem_addr][23:16];
             en<=1;
+        end
+        else if (!load_end && mem_addr < 12) begin
+            mem_addr<=0;
+            en<=0;
+            memout_addr<=0;
         end
     end
 
     reg [15:0] zero = 15'b0;
-    reg [7:0] memout_addr = 8'd0;
+    reg [32:0] memout_addr = 32'd0;
     wire [7:0] r_11, r_12, r_13 ;
     wire [15:0] d_11, d_12, d_13 ;
     // 1
@@ -112,10 +119,12 @@ module npu_wb #(
         if (en)
         begin
             memout_addr<= memout_addr + 3;
-            out_m[memout_addr] <= o_1;
-            out_m[memout_addr + 1] <= o_2;
-            out_m[memout_addr + 2] <= o_3;
+            out_m[(memout_addr * 4)] <= o_1;
+            out_m[(memout_addr + 1) * 4] <= o_2;
+            out_m[(memout_addr + 2) * 4] <= o_3;
         end
+        else 
+            mem_addr <= 0;
     end
 
 endmodule
