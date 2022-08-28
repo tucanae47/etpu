@@ -24,27 +24,26 @@ module npu_wb #(
     input wire  [31:0]  wb_dat_i,       // data in
     input wire  [31:0]  wb_adr_i,       // address
     output reg          wb_ack_o,       // ack
-    output reg  [31:0]  wb_dat_o       // data out
-
+    output reg  [31:0]  wb_dat_o,       // data out
+    // debug 
+    output reg [15:0] out1,
+    output reg[3:0] load_end,
+    output reg en
   
 );
     
     wire clk = wb_clk_i;
     wire rst = wb_rst_i;
+    // memories weights, input stream, out data
 	reg [DWIDTH-1:0] w [0:(2**AWIDTH)-1];
-	// reg [(DWIDTH*9)-1:0] IN;
     reg [DWIDTH-1:0] IN [0:(2**AWIDTH)-1];
     reg [DWIDTH-1:0] out_m [0:(2**AWIDTH)-1];
-    // reg [DWIDTH-1:0] out_m [0:(2**AWIDTH)-1];
     reg [7:0] in1,in2,in3;
     reg [7:0] in1_,in2_,in3_;
 
     reg [23:0] debug = 24'b0;
     reg [7:0] debug_a = 8'b0;
-    reg en;
-    // reg load_end;
     reg[3:0] count = 4'd0;
-    reg[3:0] load_end = 4'd0;
 	always @(posedge clk) begin
         if(wb_stb_i && wb_cyc_i && wb_we_i) begin
             if(wb_adr_i[31:8] == W_ADDRESS)
@@ -59,18 +58,16 @@ module npu_wb #(
             debug_a <= wb_adr_i[7:0];
             wb_dat_o <= out_m[wb_adr_i[7:0]];
         end
-        // else en<=0;
-
-        // if (count >= 9)
-        //     en<=1;
     end
 
     // CaravelBus acks
     always @(posedge clk) begin
-        if(rst)
+        if(rst) begin
             wb_ack_o <= 0;
+            load_end <= 0;
+            en<=0;
+        end
         else
-            // return ack immediately on every valid address
             wb_ack_o <= (wb_stb_i && (wb_adr_i[31:8] == W_ADDRESS || wb_adr_i[31:8] == R_ADDRESS || wb_adr_i[31:8] == S_ADDRESS));
     end
 
@@ -98,8 +95,8 @@ module npu_wb #(
     reg [32:0] memout_addr = 32'd0;
     wire [7:0] r_11, r_12, r_13 ;
     wire [15:0] d_11, d_12, d_13 ;
-    // 1
 
+    // 1
     pe pe_11(.clk(clk), .rst(rst), .en(en), .up(zero), .left(in1), .w(w[0*4]), .right(r_11), .down(d_11));
     pe pe_12(.clk(clk), .rst(rst), .en(en), .up(zero), .left(r_11), .w(w[1*4]), .right(r_12), .down(d_12));
     pe pe_13(.clk(clk), .rst(rst), .en(en), .up(zero), .left(r_12), .w(w[2*4]), .right(r_13), .down(d_13));
@@ -125,6 +122,7 @@ module npu_wb #(
             out_m[(memout_addr * 4)] <= o_1;
             out_m[(memout_addr + 1) * 4] <= o_2;
             out_m[(memout_addr + 2) * 4] <= o_3;
+            out1<=o_1;
         end
         else 
             mem_addr <= 0;
