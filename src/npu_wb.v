@@ -42,15 +42,15 @@ module npu_wb #(
     reg [23:0] debug = 24'b0;
     reg [7:0] debug_a = 8'b0;
     reg en;
-    reg load_end;
+    // reg load_end;
     reg[3:0] count = 4'd0;
-    // reg[3:0] load_end = 4'd0;
+    reg[3:0] load_end = 4'd0;
 	always @(posedge clk) begin
         if(wb_stb_i && wb_cyc_i && wb_we_i) begin
             if(wb_adr_i[31:8] == W_ADDRESS)
 			    w[wb_adr_i[7:0]] <= wb_dat_i;
             else if(wb_adr_i[31:8] == S_ADDRESS) begin
-                load_end<= wb_dat_i[24];
+                load_end<= wb_dat_i[28:24];
 			    IN[count] <= wb_dat_i[23:0];
                 count <= count + 1;
             end
@@ -78,7 +78,7 @@ module npu_wb #(
     always @(posedge clk) begin
         if (rst)
             mem_addr <= 0;
-        else if (load_end && mem_addr < 12) begin
+        else if (load_end==3 && mem_addr < 12) begin
             //wishbone value stays longer
             mem_addr <= mem_addr + 2;
             in1 <= IN[mem_addr][7:0];
@@ -86,11 +86,11 @@ module npu_wb #(
             in3 <= IN[mem_addr][23:16];
             en<=1;
         end
-        else if (!load_end) begin
+        else if (load_end==4) begin
             mem_addr<=0;
             en<=0;
             memout_addr<=0;
-            // count<=0;
+            count<=0;
         end
     end
 

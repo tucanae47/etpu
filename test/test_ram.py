@@ -101,23 +101,18 @@ async def test_etpu_wb(dut):
 
         # default base addr
         w_data = 15
-
+        # set weights 
         Wtdiag = []
-        # Wtdiag = diagonal(Wt,3)
         for i in range(3):
             for j in range(3):
                 Wtdiag.append(Wt[i][j])
-        # print(Wtdiag)
         for i,w in enumerate(Wtdiag):
-            # print(i,w)
             await test_wb_set(caravel_bus, weights_addr + (i * 4), w)
 
-        # TODO:? need to send another value to the bus, dunno why yet 
-        # await test_wb_set(caravel_bus, base_addr, 0)
 
         await ClockCycles(dut.caravel_wb_clk_i, 2)
        
-       
+        # set stream, convolutional output 
         for z in range(10):
             I = np.random.choice(list(range(1, 128)), (3, 3))
             I = I.astype(int)
@@ -151,7 +146,6 @@ async def test_etpu_wb(dut):
                     new_out =  int(value)
                     if new_out > 0:
                         obs_diag.append(new_out)    
-                    # print(i, int(value))
                 except Exception as e:
                     continue
             
@@ -159,7 +153,6 @@ async def test_etpu_wb(dut):
             await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
 
             for i in range(9):
-                # print(obs_diag[i], exp_diag[i])
                 assert (obs_diag[i] == exp_diag[i])
             print(all)
             print("-------------> iter", z)
