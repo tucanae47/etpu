@@ -12,7 +12,7 @@ module npu_wb #(
     parameter   [31:0]  S_ADDRESS    = 24'h3000_01,        // base address
     parameter   [31:0]  R_ADDRESS    = 24'h3000_02,        // base address
     parameter DWIDTH = 24,
-    parameter AWIDTH = 9
+    parameter AWIDTH = 7
   )(
     // CaravelBus peripheral ports
     input wire          wb_clk_i,       // clock, runs at system clock
