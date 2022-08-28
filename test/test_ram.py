@@ -94,14 +94,10 @@ async def test_etpu_wb(dut):
 
         W = np.random.choice(list(range(1, 128)), (3, 3))
         W = W.astype(int)
-        I = np.random.choice(list(range(1, 128)), (3, 3))
-        I = I.astype(int)
         '''We need to transpose the matrix as current processing arragement'''
         Wt = np.array(W).transpose().tolist()
         
         # expected = np.matmul(np.array(Wt), np.array(I))
-        expected = np.matmul(W, I)
-        print(expected)
 
         # default base addr
         w_data = 15
@@ -122,59 +118,51 @@ async def test_etpu_wb(dut):
         await ClockCycles(dut.caravel_wb_clk_i, 2)
        
        
-        i =0;
-        w_data = int(I[0][0])
-        await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
-        # w_data = 0 << 24 | int(I[1][0]) << 8 | int(I[0][1])
-        w_data = int(I[1][0]) << 8 | int(I[0][1])
-        i = i + 1
+        for z in range(10):
+            I = np.random.choice(list(range(1, 128)), (3, 3))
+            I = I.astype(int)
+            expected = np.matmul(W, I)
+            print(expected)
+            i =0;
+            w_data = int(I[0][0])
+            await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
+            w_data = int(I[1][0]) << 8 | int(I[0][1])
+            i = i + 1
 
-        # await ClockCycles(dut.caravel_wb_clk_i, 20)
-        await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
-        # w_data = 0 << 24 |int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
-        w_data = int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
-        i = i + 1
+            await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
+            w_data = int(1) << 24 |int(I[2][0]) << 16 | int(I[1][1]) << 8 | int(I[0][2])
+            i = i + 1
 
-        await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
-        # w_data = 0 << 24 | int(I[2][1]) << 16 | int(I[1][2]) << 8
-        w_data = int(I[2][1]) << 16 | int(I[1][2]) << 8
-        i = i + 1
+            await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
+            w_data = int(2) << 24 |int(I[2][1]) << 16 | int(I[1][2]) << 8
+            i = i + 1
 
-        await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
-        w_data = int(1) << 24 | int(I[2][2]) << 16
-        i = i + 1
+            await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
+            w_data = int(3) << 24 | int(I[2][2]) << 16
+            i = i + 1
 
-        # await ClockCycles(dut.caravel_wb_clk_i, 20)
-        await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
+            await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
 
-        obs_diag = []
-        exp_diag = diagonal(expected,3)
-        for i in range(7,24):
-            try:
-                value = await test_wb_get(caravel_bus, read_addr + (i*4))
-                new_out =  int(value)
-                if new_out > 0:
-                    obs_diag.append(new_out)    
-                # print(i, int(value))
-            except Exception as e:
-                continue
-        
-        await test_wb_set(caravel_bus, stream_addr + (i * 4), 0)
+            obs_diag = []
+            exp_diag = diagonal(expected,3)
+            for i in range(7,24):
+                try:
+                    value = await test_wb_get(caravel_bus, read_addr + (i*4))
+                    new_out =  int(value)
+                    if new_out > 0:
+                        obs_diag.append(new_out)    
+                    # print(i, int(value))
+                except Exception as e:
+                    continue
+            
+            w_data = int(4) << 24
+            await test_wb_set(caravel_bus, stream_addr + (i * 4), w_data)
 
-        for i in range(9):
-            # print(obs_diag[i], exp_diag[i])
-            assert (obs_diag[i] == exp_diag[i])
-        print(all)
-        # await test_wb_set(caravel_bus, base_addr, 0)
-        # await test_wb_set(caravel_bus, base_addr, 0)
-        # await test_wb_set(caravel_bus, base_addr, 0)
-        # await ClockCycles(dut.caravel_wb_clk_i, 20)
-
-
-        # for i in range(10):
-        #     value = await test_wb_get(caravel_bus, base_addr+ i )
-        #     print(value)
-        #     # print(int(value))
+            for i in range(9):
+                # print(obs_diag[i], exp_diag[i])
+                assert (obs_diag[i] == exp_diag[i])
+            print(all)
+            print("-------------> iter", z)
 
 
 
